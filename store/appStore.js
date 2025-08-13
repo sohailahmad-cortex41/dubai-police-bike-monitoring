@@ -12,12 +12,20 @@ export const useAppStore = create(
       backLaneData: null,
       frontGPSData: null,
       backGPSData: null,
+      speedLimit: 90,
+      laneConfidence: 0.3,
+      pathSmoothing: 0.3,
+      detectionMode: "back",
 
       setStatus: (status) => set({ status }),
       setFrontLaneData: (data) => set({ frontLaneData: data }),
       setBackLaneData: (data) => set({ backLaneData: data }),
       setFrontGPSData: (data) => set({ frontGPSData: data }),
       setBackGPSData: (data) => set({ backGPSData: data }),
+      setSpeedLimit: (limit) => set({ speedLimit: limit }),
+      setLaneConfidence: (confidence) => set({ laneConfidence: confidence }),
+      setPathSmoothing: (smoothing) => set({ pathSmoothing: smoothing }),
+      setDetectionMode: (mode) => set({ detectionMode: mode }),
 
       resetState: () =>
         set({

@@ -5,6 +5,19 @@ import { postData } from "../../api/axios";
 const ControlPanel = () => {
   const status = useAppStore((state) => state.status);
   const setStatus = useAppStore((state) => state.setStatus);
+  const setFrontLaneData = useAppStore((state) => state.setFrontLaneData);
+  const setBackLaneData = useAppStore((state) => state.setBackLaneData);
+  const setFrontGPSData = useAppStore((state) => state.setFrontGPSData);
+  const setBackGPSData = useAppStore((state) => state.setBackGPSData);
+
+  const speedLimit = useAppStore((state) => state.speedLimit);
+  const setSpeedLimit = useAppStore((state) => state.setSpeedLimit);
+  const laneConfidence = useAppStore((state) => state.laneConfidence);
+  const setLaneConfidence = useAppStore((state) => state.setLaneConfidence);
+  const pathSmoothing = useAppStore((state) => state.pathSmoothing);
+  const setPathSmoothing = useAppStore((state) => state.setPathSmoothing);
+  const detectionMode = useAppStore((state) => state.detectionMode);
+  const setDetectionMode = useAppStore((state) => state.setDetectionMode);
 
   const videoPath =
     "app/uploads/back_vlc-record-2025-07-25-17h07m24s-B20250502164251.ts-.ts";
@@ -15,7 +28,7 @@ const ControlPanel = () => {
     const apiData = {
       file_path: videoPath,
       camera_type: type,
-      detect_mode: "last",
+      detect_mode: detectionMode,
     };
 
     const response = await postData("start-processing", apiData, "form");
@@ -28,6 +41,14 @@ const ControlPanel = () => {
 
   const handleStopAll = () => {
     setStatus({ front: false, back: false });
+  };
+
+  const handleClearAllData = () => {
+    setStatus({ front: false, back: false });
+    setBackGPSData({});
+    setBackLaneData({});
+    setFrontGPSData({});
+    setFrontLaneData({});
   };
 
   return (
@@ -160,7 +181,11 @@ const ControlPanel = () => {
           {/* <button id="testVideoBtn" className="btn btn-info">
             <i className="fas fa-test-tube"></i> Test Video Stream
           </button> */}
-          <button id="clearBtn" className="btn btn-secondary">
+          <button
+            id="clearBtn"
+            className="btn btn-secondary"
+            onClick={handleClearAllData}
+          >
             <i className="fas fa-trash"></i> Clear Data
           </button>
         </div>
@@ -192,6 +217,8 @@ const ControlPanel = () => {
               border: "1px solid rgba(0,0,0,0.2)",
               background: "rgba(255,255,255,0.8)",
             }}
+            value={detectionMode}
+            onChange={(e) => setDetectionMode(e.target.value)}
           >
             <option value="last">Last (Furthest from Vehicle)</option>
             <option value="first">First (Closest to Vehicle)</option>
@@ -214,8 +241,9 @@ const ControlPanel = () => {
             min="0.1"
             max="0.8"
             step="0.1"
-            defaultValue="0.3"
+            defaultValue={laneConfidence}
             style={{ width: "100%", accentColor: "#007bff" }}
+            onChange={(e) => setLaneConfidence(e.target.value)}
           />
           <div
             style={{
@@ -225,7 +253,7 @@ const ControlPanel = () => {
               fontWeight: "bold",
             }}
           >
-            <span id="laneConfidenceValue">0.3</span>
+            <span id="laneConfidenceValue">{laneConfidence}</span>
           </div>
         </div>
       </div>
@@ -253,8 +281,9 @@ const ControlPanel = () => {
             min="0"
             max="0.8"
             step="0.1"
-            defaultValue="0.3"
+            defaultValue={pathSmoothing}
             style={{ width: "100%", accentColor: "#28a745" }}
+            onChange={(e) => setPathSmoothing(e.target.value)}
           />
           <div
             style={{
@@ -264,7 +293,7 @@ const ControlPanel = () => {
               fontWeight: "bold",
             }}
           >
-            <span id="smoothingValue">0.3</span>
+            <span id="smoothingValue">{pathSmoothing}</span>
           </div>
         </div>
         <div style={{ marginBottom: 15 }}>
@@ -281,9 +310,10 @@ const ControlPanel = () => {
           <input
             type="number"
             id="speedLimit"
-            defaultValue="90"
+            defaultValue={speedLimit}
             min="30"
             max="200"
+            onChange={(e) => setSpeedLimit(e.target.value)}
             style={{
               width: "100%",
               padding: 8,

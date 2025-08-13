@@ -6,6 +6,7 @@ const DataPanel = () => {
   const backLaneData = useAppStore((state) => state.backLaneData);
   const frontGPSData = useAppStore((state) => state.frontGPSData);
   const backGPSData = useAppStore((state) => state.backGPSData);
+  const speedLimit = useAppStore((state) => state.speedLimit);
 
   // console.log("Front Lane Data:", frontLaneData);
   // console.log("Back Lane Data:", backLaneData);
@@ -24,11 +25,8 @@ const DataPanel = () => {
           <div className="speed-value" id="currentSpeed">
             {frontGPSData?.speed || backGPSData?.speed || "--"} km/h
           </div>
-          <div className="speed-status" id="speedStatus">
-            Monitoring...
-          </div>
           <div className="speed-limit">
-            Speed Limit: <span id="displaySpeedLimit">90</span> km/h
+            Speed Limit: <span id="displaySpeedLimit">{speedLimit}</span> km/h
           </div>
         </div>
       </div>

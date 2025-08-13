@@ -10,22 +10,23 @@ const MapSection = () => {
   const [position, setPosition] = React.useState(DEFAULT_POSITION);
   const frontGPSData = useAppStore((state) => state.frontGPSData);
   const backGPSData = useAppStore((state) => state.backGPSData);
+  const speedLimit = useAppStore((state) => state.speedLimit);
 
   useEffect(() => {
-    if (frontGPSData) {
+    if (frontGPSData?.latitude && frontGPSData?.longitude) {
       setPosition([
         +frontGPSData?.latitude?.toFixed(4),
         +frontGPSData?.longitude?.toFixed(4),
       ]);
-    } else if (backGPSData) {
+    } else if (backGPSData?.latitude && backGPSData?.longitude) {
       setPosition([
         +backGPSData?.latitude?.toFixed(4),
         +backGPSData?.longitude?.toFixed(4),
       ]);
+    } else {
+      setPosition(DEFAULT_POSITION);
     }
   }, [frontGPSData, backGPSData]);
-
-  console.log("Current GPS Position:", position);
 
   return (
     <div className="map-section">
@@ -41,7 +42,7 @@ const MapSection = () => {
       </div>
       <MapContainer
         center={position}
-        zoom={18}
+        zoom={16}
         style={{
           minHeight: 500,
           borderRadius: 10,
@@ -62,11 +63,11 @@ const MapSection = () => {
       <div className="map-legend">
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#007bff" }}></div>
-          <span>Normal Speed (≤90 km/h)</span>
+          <span>Normal Speed (≤{speedLimit} km/h)</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#dc3545" }}></div>
-          <span>Speed Violation (&gt;90 km/h)</span>
+          <span>Speed Violation (&gt;{speedLimit} km/h)</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#28a745" }}></div>

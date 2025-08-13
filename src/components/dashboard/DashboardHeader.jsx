@@ -1,15 +1,17 @@
 import React from "react";
 import { useAppStore } from "../../../store/appStore";
+import logo from "../../assets/police.jpg"; // Adjust the path as necessary
 
 const DashboardHeader = () => {
   const status = useAppStore((state) => state.status);
   return (
     <header className="dashboard-header">
       <div className="logo-section">
-        <i
+        {/* <i
           className="fas fa-helicopter"
           style={{ color: "#00ff88", fontSize: "1.5em" }}
-        ></i>
+        ></i> */}
+        <img src={logo} width="40px" alt="dubai police logo" />
         <h1>Dubai Police Motorcycle Monitoring</h1>
       </div>
       <div className="status-section">
