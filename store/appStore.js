@@ -12,6 +12,8 @@ export const useAppStore = create(
       backLaneData: null,
       frontGPSData: null,
       backGPSData: null,
+      frontCameraFilePath: null,
+      backCameraFilePath: null,
       speedLimit: 90,
       laneConfidence: 0.3,
       pathSmoothing: 0.3,
@@ -26,6 +28,10 @@ export const useAppStore = create(
       setLaneConfidence: (confidence) => set({ laneConfidence: confidence }),
       setPathSmoothing: (smoothing) => set({ pathSmoothing: smoothing }),
       setDetectionMode: (mode) => set({ detectionMode: mode }),
+      setFrontCameraFilePath: (filePath) =>
+        set({ frontCameraFilePath: filePath }),
+      setBackCameraFilePath: (filePath) =>
+        set({ backCameraFilePath: filePath }),
 
       resetState: () =>
         set({

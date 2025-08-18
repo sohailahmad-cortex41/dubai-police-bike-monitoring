@@ -19,18 +19,19 @@ const ControlPanel = () => {
   const detectionMode = useAppStore((state) => state.detectionMode);
   const setDetectionMode = useAppStore((state) => state.setDetectionMode);
 
-  const videoPath =
-    "app/uploads/back_vlc-record-2025-07-25-17h07m24s-B20250502164251.ts-.ts";
+  const frontCameraFilePath = useAppStore((state) => state.frontCameraFilePath);
+  const backCameraFilePath = useAppStore((state) => state.backCameraFilePath);
 
   const handleStartCamera = async (type) => {
     setStatus({ ...status, [type]: true });
 
     const apiData = {
-      file_path: videoPath,
+      file_path: type === "front" ? frontCameraFilePath : backCameraFilePath,
       camera_type: type,
       detect_mode: detectionMode,
     };
 
+    console.log(`Starting ${type} camera with data:`, apiData);
     const response = await postData("start-processing", apiData, "form");
     console.log(`Camera ${type} started:`, response);
   };
