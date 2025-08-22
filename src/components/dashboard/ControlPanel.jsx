@@ -36,8 +36,19 @@ const ControlPanel = () => {
     console.log(`Camera ${type} started:`, response);
   };
 
-  const handleStopCamera = (type) => {
+  const handleStopCamera = async (type) => {
     setStatus({ ...status, [type]: false });
+
+    const apiData = {
+      file_path: type === "front" ? frontCameraFilePath : backCameraFilePath,
+      camera_type: type,
+      detect_mode: detectionMode,
+    };
+
+    console.log(`Stopping ${type} camera with data:`, apiData);
+    const response = await postData("stop-processing", apiData, "form");
+    console.log(`Camera ${type} stopped:`, response);
+
   };
 
   const handleStopAll = () => {

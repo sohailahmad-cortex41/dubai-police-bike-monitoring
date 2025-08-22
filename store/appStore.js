@@ -17,7 +17,7 @@ export const useAppStore = create(
       speedLimit: 90,
       laneConfidence: 0.3,
       pathSmoothing: 0.3,
-      detectionMode: "back",
+      detectionMode: "last",
 
       setStatus: (status) => set({ status }),
       setFrontLaneData: (data) => set({ frontLaneData: data }),
