@@ -1,7 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAppStore } from "../../../store/appStore";
+import useWebSocket from "../../hooks/useWebSocket";
+
+
 
 const DataPanel = () => {
+  const status = useAppStore((state) => state.status);
   const frontLaneData = useAppStore((state) => state.frontLaneData);
   const backLaneData = useAppStore((state) => state.backLaneData);
   const frontGPSData = useAppStore((state) => state.frontGPSData);
@@ -12,6 +16,10 @@ const DataPanel = () => {
   // console.log("Back Lane Data:", backLaneData);
   // console.log("Front GPS Data:", frontGPSData);
   // console.log("Back GPS Data:", backGPSData);
+
+  // WebSocket connection (violations are handled automatically by the hook)
+  const { isConnected } = useWebSocket('front');
+
 
   return (
     <div className="data-panel">

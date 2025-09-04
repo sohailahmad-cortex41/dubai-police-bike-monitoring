@@ -1,8 +1,12 @@
-import React, { use } from "react";
+import React, { use, useEffect } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { postData } from "../../api/axios";
+import useWebSocket from "../../hooks/useWebSocket";
 
 const ControlPanel = () => {
+  const frontWS = useWebSocket('front');
+  const backWS = useWebSocket('back');
+
   const status = useAppStore((state) => state.status);
   const setStatus = useAppStore((state) => state.setStatus);
   const setFrontLaneData = useAppStore((state) => state.setFrontLaneData);
@@ -33,8 +37,16 @@ const ControlPanel = () => {
 
     console.log(`Starting ${type} camera with data:`, apiData);
     const response = await postData("start-processing", apiData, "form");
+    if (type == 'front') {
+      frontWS.connect();
+    } else {
+      backWS.connect();
+    }
+
     console.log(`Camera ${type} started:`, response);
   };
+
+  console.log("ControlPanel render - status:", status);
 
   const handleStopCamera = async (type) => {
     setStatus({ ...status, [type]: false });

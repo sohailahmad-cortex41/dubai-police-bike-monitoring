@@ -37,22 +37,19 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    let intervalId;
+  // useEffect(() => {
+  //   let intervalId;
 
-    if (status?.front || status?.back) {
-      // fetch immediately once
-      fetchData();
+  //   if (status?.front || status?.back) {
+  //     fetchData();
 
-      // then repeat every 3 seconds
-      intervalId = setInterval(fetchData, 1000);
-    }
+  //     intervalId = setInterval(fetchData, 1000);
+  //   }
 
-    // cleanup when status changes or component unmounts
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [status]); // runs when status changes
+  //   return () => {
+  //     if (intervalId) clearInterval(intervalId);
+  //   };
+  // }, [status]); 
 
   return (
     <div className="dashboard-root">
