@@ -1,5 +1,4 @@
 import React from "react";
-import OptimizedCameraWindow from "./OptimizedCameraWindow";
 import CameraWindow from "./CameraWindow";
 
 const VideoSection = () => {
