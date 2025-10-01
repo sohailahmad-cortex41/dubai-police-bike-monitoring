@@ -6,17 +6,21 @@ import DataPanel from "./DataPanel";
 
 const DashboardContainer = () => (
   <div className="dashboard-container">
-    <div style={{ gridArea: "control" }}>
+    {/* Left Section - Control Panel */}
+    <div className="dashboard-left">
       <ControlPanel />
     </div>
-    <div style={{ gridArea: "video" }}>
+
+    {/* Right Section - Video + Bottom */}
+    <div className="dashboard-right">
+      {/* Video Section - Full width on top */}
       <VideoSection />
-    </div>
-    <div style={{ gridArea: "map" }}>
-      <MapSection />
-    </div>
-    <div style={{ gridArea: "data" }}>
-      <DataPanel />
+
+      {/* Bottom Section - Map + Data side by side */}
+      <div className="dashboard-bottom">
+        <MapSection />
+        <DataPanel />
+      </div>
     </div>
   </div>
 );
