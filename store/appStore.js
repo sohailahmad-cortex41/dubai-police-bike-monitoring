@@ -18,6 +18,8 @@ export const useAppStore = create(
       laneConfidence: 0.3,
       pathSmoothing: 0.3,
       detectionMode: "last",
+      violationHistory: [],
+      gpsHistory: [],
 
       setStatus: (status) => set({ status }),
       setFrontLaneData: (data) => set({ frontLaneData: data }),
@@ -32,6 +34,16 @@ export const useAppStore = create(
         set({ frontCameraFilePath: filePath }),
       setBackCameraFilePath: (filePath) =>
         set({ backCameraFilePath: filePath }),
+      addViolation: (violation) =>
+        set((state) => ({
+          violationHistory: [violation, ...state.violationHistory],
+        })),
+      clearViolations: () => set({ violationHistory: [] }),
+      addGpsEntry: (entry) =>
+        set((state) => ({
+          gpsHistory: [...state.gpsHistory, entry],
+        })),
+      clearGpsHistory: () => set({ gpsHistory: [] }),
 
       resetState: () =>
         set({

@@ -3,6 +3,7 @@ import { useAppStore } from "../../../store/appStore";
 import { postData } from "../../api/axios";
 import useWebSocket from "../../hooks/useWebSocket";
 
+
 const ControlPanel = () => {
   const frontWS = useWebSocket('front');
   const backWS = useWebSocket('back');
@@ -26,6 +27,9 @@ const ControlPanel = () => {
   const frontCameraFilePath = useAppStore((state) => state.frontCameraFilePath);
   const backCameraFilePath = useAppStore((state) => state.backCameraFilePath);
 
+  const clearViolations = useAppStore((state) => state.clearViolations);
+  const clearGpsHistory = useAppStore((state) => state.clearGpsHistory);
+
   const handleStartCamera = async (type) => {
     setStatus({ ...status, [type]: true });
 
@@ -46,7 +50,7 @@ const ControlPanel = () => {
     console.log(`Camera ${type} started:`, response);
   };
 
-  console.log("ControlPanel render - status:", status);
+  // console.log("ControlPanel render - status:", status);
 
   const handleStopCamera = async (type) => {
     setStatus({ ...status, [type]: false });
@@ -73,6 +77,8 @@ const ControlPanel = () => {
     setBackLaneData({});
     setFrontGPSData({});
     setFrontLaneData({});
+    clearViolations();
+    clearGpsHistory();
   };
 
   return (

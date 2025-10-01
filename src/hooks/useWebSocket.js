@@ -8,12 +8,17 @@ export const useWebSocket = (cameraType = 'front') => {
     const [connectionAttempts, setConnectionAttempts] = useState(0);
     const [videoFrame, setVideoFrame] = useState(null);
 
+    const violationHistory = useAppStore((state) => state.violationHistory);
+    const gpsHistory = useAppStore((state) => state.gpsHistory);
+
     // Zustand store actions
+
     const setFrontLaneData = useAppStore((state) => state.setFrontLaneData);
     const setBackLaneData = useAppStore((state) => state.setBackLaneData);
     const setFrontGPSData = useAppStore((state) => state.setFrontGPSData);
     const setBackGPSData = useAppStore((state) => state.setBackGPSData);
     const addViolation = useAppStore((state) => state.addViolation);
+    const addGpsEntry = useAppStore((state) => state.addGpsEntry);
     const setSystemStatus = useAppStore((state) => state.setSystemStatus);
     const status = useAppStore((state) => state.status);
     const setStatus = useAppStore((state) => state.setStatus);
@@ -31,17 +36,39 @@ export const useWebSocket = (cameraType = 'front') => {
 
     // Handle GPS updates
     const handleGpsUpdate = useCallback((data) => {
-        console.log(`� [${cameraType}] GPS update:`, data);
-        if (cameraType === 'front') {
-            setFrontGPSData(data);
+
+
+        //check if data is duplicate 
+        const checkDuplicate = gpsHistory.find(entry =>
+            entry.latitude == data.latitude &&
+            entry.longitude == data.longitude
+        );
+
+        if (checkDuplicate) {
+            console.log(`Duplicate GPS entry ignored:`, data);
         } else {
-            setBackGPSData(data);
+            // console.log(`[${cameraType}] GPS update:`, data);
+            // console.log('GPS History:', gpsHistory);
+
+            addGpsEntry({
+                ...data,
+                cameraType
+            });
+
+            if (cameraType === 'front') {
+                setFrontGPSData(data);
+            } else {
+                setBackGPSData(data);
+            }
         }
+
+
+
     }, [cameraType, setFrontGPSData, setBackGPSData]);
 
     // Handle lane updates
     const handleLaneUpdate = useCallback((data) => {
-        console.log(`🛣️ [${cameraType}] Lane update:`, data);
+        // console.log(`🛣️ [${cameraType}] Lane update:`, data);
         if (cameraType === 'front') {
             setFrontLaneData(data);
         } else {
@@ -51,36 +78,47 @@ export const useWebSocket = (cameraType = 'front') => {
 
     // Handle violation alerts
     const handleViolation = useCallback((data) => {
-        console.log(`🚨 Violation detected:`, data);
+        console.warn(`🚨 Violation detected:`, data);
+        console.log(`Current violation history:`, violationHistory);
 
-        // Add to store
-        if (addViolation) {
+        // Prevent duplicate violations within short time (e.g., 10 seconds)
+        const recentDuplicate = violationHistory.find(v =>
+            v.description === data.description
+        );
+
+        if (recentDuplicate) {
+            console.log(`Duplicate violation ignored:`, data);
+            return;
+        } else {
             addViolation({
                 ...data,
                 cameraType,
                 id: Date.now() // Add unique ID
             });
+
+            // Show toast notification
+
+            // toast.error(`🚨 ${data.violation_type}: ${data.description}`, {
+            //     duration: 1000,
+            //     style: {
+            //         background: '#ef4444',
+            //         color: 'white',
+            //     },
+            // });
+
         }
 
-        // Show toast notification
-        toast.error(`🚨 ${data.violation_type}: ${data.description}`, {
-            duration: 5000,
-            style: {
-                background: '#ef4444',
-                color: 'white',
-            },
-        });
     }, [cameraType, addViolation]);
 
     // Handle video frames
     const handleVideoFrame = useCallback((data) => {
-        console.log(`📹 [${cameraType}] Video frame received`);
+        // console.log(`📹 [${cameraType}] Video frame received`);
         setVideoFrame(data);
     }, [cameraType]);
 
     // Handle system status
     const handleSystemStatus = useCallback((data) => {
-        console.log(`⚙️ System status:`, data);
+        // console.log(`⚙️ System status:`, data);
         if (setSystemStatus) {
             setSystemStatus(data);
         }
@@ -94,7 +132,7 @@ export const useWebSocket = (cameraType = 'front') => {
     const handleMessage = useCallback((message) => {
         const { type, data, timestamp } = message;
 
-        console.log(`📡 [${cameraType}] WebSocket message:`, type, data);
+        // console.log(`📡 [${cameraType}] WebSocket message:`, type, data);
 
         switch (type) {
             case MessageTypes.PROCESSING_STARTED:
@@ -114,7 +152,7 @@ export const useWebSocket = (cameraType = 'front') => {
                 break;
 
             default:
-                console.log(`[${cameraType}] Unhandled message type: ${type}`);
+            // console.log(`[${cameraType}] Unhandled message type: ${type}`);
         }
     }, [cameraType]);
 

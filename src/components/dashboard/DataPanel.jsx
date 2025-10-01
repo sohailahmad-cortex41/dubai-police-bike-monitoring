@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { useAppStore } from "../../../store/appStore";
-import useWebSocket from "../../hooks/useWebSocket";
 
 
 
@@ -11,6 +10,7 @@ const DataPanel = () => {
   const frontGPSData = useAppStore((state) => state.frontGPSData);
   const backGPSData = useAppStore((state) => state.backGPSData);
   const speedLimit = useAppStore((state) => state.speedLimit);
+  const violationHistory = useAppStore((state) => state.violationHistory);
 
   // console.log("Front Lane Data:", frontLaneData);
   // console.log("Back Lane Data:", backLaneData);
@@ -18,11 +18,49 @@ const DataPanel = () => {
   // console.log("Back GPS Data:", backGPSData);
 
   // WebSocket connection (violations are handled automatically by the hook)
-  const { isConnected } = useWebSocket('front');
 
 
   return (
     <div className="data-panel">
+      {/* Violation Alerts Card */}
+      <div className="data-card">
+        <div className="card-title">
+          <i className="fas fa-exclamation-triangle"></i>
+          Traffic Violations
+        </div>
+        <div
+          id="violationsList"
+          style={{ maxHeight: 150, overflowY: "auto", padding: 10 }}
+        >
+          {violationHistory.length === 0 ? (
+            <div style={{ textAlign: "center", color: "#6c757d", padding: 20 }}>
+              <i
+                className="fas fa-check-circle"
+                style={{
+                  fontSize: "1.5em",
+                  marginBottom: 10,
+                  display: "block",
+                  color: "#28a745",
+                }}
+              ></i>
+              No violations detected
+            </div>
+          ) : (
+            violationHistory.map((violation, index) => (
+              <div key={index} style={{ marginBottom: 8, backgroundColor: "#f8d7da", padding: 8, borderRadius: 4 }}>
+                <strong style={{ color: "#e74c3c" }}>
+
+                  {violation?.violation_type?.replace(/_/g, " ").toUpperCase()}
+                </strong>
+                <div style={{ fontSize: "0.9em", opacity: 0.8 }}>
+                  {violation.description || "No additional details."}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Speed Monitor Card */}
       <div className="data-card speed-card">
         <div className="card-title">
@@ -90,30 +128,7 @@ const DataPanel = () => {
         </div>
       </div>
 
-      {/* Violation Alerts Card */}
-      <div className="data-card">
-        <div className="card-title">
-          <i className="fas fa-exclamation-triangle"></i>
-          Traffic Violations
-        </div>
-        <div
-          id="violationsList"
-          style={{ maxHeight: 150, overflowY: "auto", padding: 10 }}
-        >
-          <div style={{ textAlign: "center", color: "#6c757d", padding: 20 }}>
-            <i
-              className="fas fa-check-circle"
-              style={{
-                fontSize: "1.5em",
-                marginBottom: 10,
-                display: "block",
-                color: "#28a745",
-              }}
-            ></i>
-            No violations detected
-          </div>
-        </div>
-      </div>
+
 
       {/* GPS Coordinates Card */}
       <div className="data-card gps-card">

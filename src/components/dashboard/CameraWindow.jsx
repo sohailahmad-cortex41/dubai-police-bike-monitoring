@@ -113,7 +113,7 @@ const CameraWindow = ({ cameraType }) => {
           style={{
             display: hasVideoStream ? "block" : "none",
             width: "100%",
-            height: "300px",
+            height: "400px",
             border: "none",
             borderRadius: "8px"
           }}
@@ -174,7 +174,7 @@ const CameraWindow = ({ cameraType }) => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            height: "300px",
+            height: "400px",
             backgroundColor: "black",
             borderRadius: "8px",
             color: "#6c757d"
