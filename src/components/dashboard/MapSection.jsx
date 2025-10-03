@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import React, { useEffect, useMemo } from "react";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, CircleMarker } from "react-leaflet";
 import RecenterMap from "./RecenterMap";
 import "leaflet/dist/leaflet.css";
 import { useAppStore } from "../../../store/appStore";
@@ -11,9 +11,46 @@ const MapSection = () => {
   const frontGPSData = useAppStore((state) => state.frontGPSData);
   const backGPSData = useAppStore((state) => state.backGPSData);
   const speedLimit = useAppStore((state) => state.speedLimit);
+  const gpsHistory = useAppStore((state) => state.gpsHistory);
 
+  // Remove redundant GPS entries and process unique positions
+  const uniqueGpsHistory = useMemo(() => {
+    if (!gpsHistory || !Array.isArray(gpsHistory)) return [];
+
+    const unique = [];
+    const seen = new Set();
+
+    gpsHistory.forEach(entry => {
+      if (entry?.latitude && entry?.longitude) {
+        // Create a unique key based on latitude and longitude (rounded to avoid floating point issues)
+        const key = `${entry.latitude.toFixed(6)}_${entry.longitude.toFixed(6)}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push({
+            ...entry,
+            lat: parseFloat(entry.latitude),
+            lng: parseFloat(entry.longitude),
+            speed: parseFloat(entry.speed) || 0
+          });
+        }
+      }
+    });
+
+    return unique;
+  }, [gpsHistory]);
+
+  // Create polyline coordinates from GPS history
+  const polylineCoordinates = useMemo(() => {
+    return uniqueGpsHistory.map(point => [point.lat, point.lng]);
+  }, [uniqueGpsHistory]);
+
+  // Get the latest position from GPS history or fallback to current GPS data
   useEffect(() => {
-    if (frontGPSData?.latitude && frontGPSData?.longitude) {
+    if (uniqueGpsHistory.length > 0) {
+      const latestPoint = uniqueGpsHistory[uniqueGpsHistory.length - 1];
+      setPosition([latestPoint.lat, latestPoint.lng]);
+    } else if (frontGPSData?.latitude && frontGPSData?.longitude) {
       setPosition([
         +frontGPSData?.latitude?.toFixed(4),
         +frontGPSData?.longitude?.toFixed(4),
@@ -26,7 +63,7 @@ const MapSection = () => {
     } else {
       setPosition(DEFAULT_POSITION);
     }
-  }, [frontGPSData, backGPSData]);
+  }, [uniqueGpsHistory, frontGPSData, backGPSData]);
 
   return (
     <div className="map-section">
@@ -56,21 +93,72 @@ const MapSection = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <RecenterMap position={position} />
-        <Marker position={position}>
-          <Popup>Current Position</Popup>
-        </Marker>
+
+        {/* Draw polyline connecting all GPS points */}
+        {polylineCoordinates.length > 1 && (
+          <Polyline
+            positions={polylineCoordinates}
+            color="#007bff"
+            weight={3}
+            opacity={0.8}
+          />
+        )}
+
+        {/* Render GPS history points with color based on speed */}
+        {uniqueGpsHistory.map((point, index) => {
+          const isSpeedViolation = point.speed > 70;
+          const color = isSpeedViolation ? "#dc3545" : "#28a745"; // Red for >70, Green for ≤70
+
+          return (
+            <CircleMarker
+              key={`${point.lat}-${point.lng}-${index}`}
+              center={[point.lat, point.lng]}
+              radius={6}
+              color={color}
+              fillColor={color}
+              fillOpacity={0.8}
+              weight={2}
+            >
+              <Popup>
+                <div>
+                  <strong>GPS Point {index + 1}</strong><br />
+                  <strong>Speed:</strong> {point.speed.toFixed(1)} km/h<br />
+                  <strong>Coordinates:</strong> {point.coordinates_text || `${point.lat.toFixed(6)}, ${point.lng.toFixed(6)}`}<br />
+                  {point.confidence && <><strong>Confidence:</strong> {(point.confidence * 100).toFixed(1)}%<br /></>}
+                  <strong>Status:</strong> {isSpeedViolation ? "Speed Violation" : "Normal Speed"}
+                </div>
+              </Popup>
+            </CircleMarker>
+          );
+        })}
+
+        {/* Current position marker (latest point) */}
+        {uniqueGpsHistory.length > 0 && (
+          <Marker position={position}>
+            <Popup>
+              <div>
+                <strong>Current Position</strong><br />
+                Latest GPS reading
+              </div>
+            </Popup>
+          </Marker>
+        )}
       </MapContainer>
       <div className="map-legend">
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#007bff" }}></div>
-          <span>Normal Speed (≤{speedLimit} km/h)</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color" style={{ background: "#dc3545" }}></div>
-          <span>Speed Violation (&gt;{speedLimit} km/h)</span>
+          <span>Route Path</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#28a745" }}></div>
+          <span>Normal Speed (≤70 km/h)</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color" style={{ background: "#dc3545" }}></div>
+          <span>Speed Violation (&gt;70 km/h)</span>
+        </div>
+        <div className="legend-item">
+          <i className="fas fa-map-marker-alt" style={{ color: "#333", fontSize: "16px" }}></i>
           <span>Current Position</span>
         </div>
       </div>
