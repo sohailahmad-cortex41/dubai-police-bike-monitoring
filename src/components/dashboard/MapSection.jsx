@@ -45,6 +45,47 @@ const MapSection = () => {
     return uniqueGpsHistory.map(point => [point.lat, point.lng]);
   }, [uniqueGpsHistory]);
 
+  // Create colored line segments based on speed
+  const coloredLineSegments = useMemo(() => {
+    if (uniqueGpsHistory.length < 2) return [];
+
+    const segments = [];
+
+    for (let i = 0; i < uniqueGpsHistory.length - 1; i++) {
+      const currentPoint = uniqueGpsHistory[i];
+      const nextPoint = uniqueGpsHistory[i + 1];
+
+      // Determine if each point is a speed violation
+      const currentIsViolation = currentPoint.speed > 70;
+      const nextIsViolation = nextPoint.speed > 70;
+
+      // Determine line color based on both points
+      let color;
+      if (currentIsViolation && nextIsViolation) {
+        // Both points are violations - Red line
+        color = "#dc3545";
+      } else if (!currentIsViolation && !nextIsViolation) {
+        // Both points are normal speed - Green line
+        color = "#28a745";
+      } else {
+        // Mixed: one violation, one normal - Blue line
+        color = "#007bff";
+      }
+
+      segments.push({
+        positions: [
+          [currentPoint.lat, currentPoint.lng],
+          [nextPoint.lat, nextPoint.lng]
+        ],
+        color: color,
+        currentSpeed: currentPoint.speed,
+        nextSpeed: nextPoint.speed
+      });
+    }
+
+    return segments;
+  }, [uniqueGpsHistory]);
+
   // Get the latest position from GPS history or fallback to current GPS data
   useEffect(() => {
     if (uniqueGpsHistory.length > 0) {
@@ -94,15 +135,16 @@ const MapSection = () => {
         />
         <RecenterMap position={position} />
 
-        {/* Draw polyline connecting all GPS points */}
-        {polylineCoordinates.length > 1 && (
+        {/* Draw colored polyline segments based on speed */}
+        {coloredLineSegments.map((segment, index) => (
           <Polyline
-            positions={polylineCoordinates}
-            color="#007bff"
-            weight={3}
+            key={`segment-${index}`}
+            positions={segment.positions}
+            color={segment.color}
+            weight={4}
             opacity={0.8}
           />
-        )}
+        ))}
 
         {/* Render GPS history points with color based on speed */}
         {uniqueGpsHistory.map((point, index) => {
@@ -146,16 +188,16 @@ const MapSection = () => {
       </MapContainer>
       <div className="map-legend">
         <div className="legend-item">
-          <div className="legend-color" style={{ background: "#007bff" }}></div>
-          <span>Route Path</span>
-        </div>
-        <div className="legend-item">
           <div className="legend-color" style={{ background: "#28a745" }}></div>
-          <span>Normal Speed (≤70 km/h)</span>
+          <span>Normal Speed Route (≤70 km/h)</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#dc3545" }}></div>
-          <span>Speed Violation (&gt;70 km/h)</span>
+          <span>Speed Violation Route (&gt;70 km/h)</span>
+        </div>
+        <div className="legend-item">
+          <div className="legend-color" style={{ background: "#007bff" }}></div>
+          <span>Transition (Mixed Speed)</span>
         </div>
         <div className="legend-item">
           <i className="fas fa-map-marker-alt" style={{ color: "#333", fontSize: "16px" }}></i>
