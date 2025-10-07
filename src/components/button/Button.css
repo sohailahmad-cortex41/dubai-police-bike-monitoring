@@ -1,0 +1,35 @@
+.custom-button {
+  width: 100%;
+  padding: 14px;
+  background-color: #008657;
+  color: #fff;
+  border-radius: 10px;
+  border: none;
+  font-family: "Inter-Regular", sans-serif;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.custom-button.s {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.custom-button.xs {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.custom-button:hover {
+  opacity: 0.9;
+}
+
+.button-disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

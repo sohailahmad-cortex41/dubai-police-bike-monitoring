@@ -14,7 +14,7 @@ const DashboardHeader = () => {
         <img src={logo} width="40px" alt="dubai police logo" />
         <h1>Dubai Police Motorcycle Monitoring</h1>
       </div>
-      <div className="status-section">
+      {/* <div className="status-section">
         <div className="connection-indicator">
           <div
             className={`status-dot ${
@@ -26,11 +26,11 @@ const DashboardHeader = () => {
             {status?.front || status?.back ? "Connected" : "Disconnected"}
           </span>
         </div>
-        {/* <div style={{ fontSize: "0.9em", opacity: 0.7 }}>
+        <div style={{ fontSize: "0.9em", opacity: 0.7 }}>
           <i className="fas fa-clock"></i>
           <span id="currentTime"></span>
-        </div> */}
-      </div>
+        </div>
+      </div> */}
     </header>
   );
 };
