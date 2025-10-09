@@ -92,7 +92,7 @@ export default function Login() {
           </div>
         </div>
         <div className="main-content">
-          <h2 className="heading1 text-center">Dubai Police Motorbike Monitoring System</h2>
+          <h2 className="heading1 text-center mb-3">Dubai Police Motorbike Monitoring System</h2>
 
           {/* <Input
             label="Email"

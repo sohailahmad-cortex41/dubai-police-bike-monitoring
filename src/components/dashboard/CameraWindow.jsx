@@ -4,8 +4,11 @@ import { postData } from "../../api/axios";
 import { toast } from "react-hot-toast";
 import Loader from "../Loader";
 import useWebSocket from "../../hooks/useWebSocket";
+import { useLocation } from "react-router-dom";
 
 const CameraWindow = ({ cameraType }) => {
+  const location = useLocation();
+  const bikerId = location.search ? new URLSearchParams(location.search).get("bikerId") : null;
   const fileInputRef = useRef();
   const videoRef = useRef();
   const [uploading, setUploading] = useState(false);
@@ -25,6 +28,7 @@ const CameraWindow = ({ cameraType }) => {
   const setBackCameraFilePath = useAppStore(
     (state) => state.setBackCameraFilePath
   );
+  const setRideId = useAppStore((state) => state.setRideId);
 
   // Get the video stream URL from environment
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5455';
@@ -58,13 +62,25 @@ const CameraWindow = ({ cameraType }) => {
     setUploadedFileName("");
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      Array.from(e.target.files).forEach((file, idx) => {
+        formData.append("files", file);
+      });
       formData.append("camera_type", cameraType);
-      const response = await postData("upload-video/", formData, "form");
+      if (bikerId) {
+        formData.append("biker_id", bikerId);
+      }
+      // number plate 
+      // for now generate a random number plate
+      const randomPlate = `D${Math.floor(1000 + Math.random() * 9000)}XX`;
+      formData.append("plate_number", randomPlate);
+      formData.append("folder_name", randomPlate);
+      const response = await postData("rides-with-videos/", formData, "form");
 
       setUploadedFileName(file.name);
+
+      setRideId(response?.ride_id);
       if (cameraType === "front") {
-        setFrontCameraFilePath(response?.file_path);
+        setFrontCameraFilePath(response?.files[0]?.rel_path);
       } else {
         setBackCameraFilePath(response?.file_path);
       }

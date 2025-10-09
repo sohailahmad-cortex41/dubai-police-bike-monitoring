@@ -20,6 +20,7 @@ export const useAppStore = create(
       detectionMode: "last",
       violationHistory: [],
       gpsHistory: [],
+      ride_id: null,
 
       setStatus: (status) => set({ status }),
       setFrontLaneData: (data) => set({ frontLaneData: data }),
@@ -44,11 +45,20 @@ export const useAppStore = create(
           gpsHistory: [...state.gpsHistory, entry],
         })),
       clearGpsHistory: () => set({ gpsHistory: [] }),
+      setRideId: (id) => set({ ride_id: id }),
+
 
       resetState: () =>
         set({
-          otp: null,
-          storeData: null,
+          gpsHistory: [],
+          violationHistory: [],
+          frontLaneData: null,
+          backLaneData: null,
+          frontGPSData: null,
+          backGPSData: null,
+          frontCameraFilePath: null,
+          backCameraFilePath: null,
+          ride_id: null
         }),
     }),
     {

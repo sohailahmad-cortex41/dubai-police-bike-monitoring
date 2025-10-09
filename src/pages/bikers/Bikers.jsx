@@ -1,13 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
-import { getData } from '../../api/axios'
-import { FaUser, FaPhone, FaEnvelope, FaCalendar, FaFilter, FaTimes, FaUsers, FaSearch } from 'react-icons/fa'
+import { getData, postData } from '../../api/axios'
+import { FaUser, FaPhone, FaEnvelope, FaCalendar, FaFilter, FaTimes, FaUsers, FaSearch, FaPlus, FaExclamationTriangle } from 'react-icons/fa'
 import './Bikers.css'
 
 export default function Bikers() {
     const [data, setData] = useState([])
     const [loading, setLoading] = useState(true)
+    const [showFilters, setShowFilters] = useState(false)
+    const [showAddModal, setShowAddModal] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const [filters, setFilters] = useState({
         search: '',
         phone: '',
@@ -15,6 +18,12 @@ export default function Bikers() {
         dateFrom: '',
         dateTo: ''
     })
+    const [formData, setFormData] = useState({
+        name: '',
+        phone_number: '',
+        email: ''
+    })
+    const [formErrors, setFormErrors] = useState({})
 
     const navigate = useNavigate()
 
@@ -26,8 +35,8 @@ export default function Bikers() {
                 console.error('Failed to fetch bikers data:', response?.message)
                 return
             }
-            const bikersData = response.bikers || []
-            console.log('Bikers data:', bikersData)
+            const bikersData = response.bikers.reverse() || []
+            // console.log('Bikers data:', bikersData)
             setData(bikersData)
         } catch (error) {
             console.error('Error fetching bikers data:', error)
@@ -84,6 +93,115 @@ export default function Bikers() {
         navigate(`/dashboard?bikerId=${bikerId}`)
     }
 
+    const validateForm = () => {
+        const errors = {}
+
+        if (!formData.name.trim()) {
+            errors.name = 'Name is required'
+        }
+
+        // if (!formData.phone_number.trim()) {
+        //     errors.phone_number = 'Phone number is required'
+        // } else if (!/^\d{10,15}$/.test(formData.phone_number.replace(/\s/g, ''))) {
+        //     errors.phone_number = 'Please enter a valid phone number'
+        // }
+
+        // if (!formData.email.trim()) {
+        //     errors.email = 'Email is required'
+        // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        //     errors.email = 'Please enter a valid email address'
+        // }
+
+        setFormErrors(errors)
+        return Object.keys(errors).length === 0
+    }
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault()
+
+        if (!validateForm()) return
+
+        setIsSubmitting(true)
+
+        try {
+            const url = `http://0.0.0.0:5455/bikers/?name=${encodeURIComponent(formData.name)}&phone_number=${encodeURIComponent(formData.phone_number)}&email=${encodeURIComponent(formData.email)}`
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+
+            const result = await response.json()
+
+            if (response.ok && (result.success || result.status === 'success')) {
+                // Reset form and close modal
+                setFormData({ name: '', phone_number: '', email: '' })
+                setShowAddModal(false)
+                setFormErrors({})
+
+                // Refresh bikers list
+                await getBikers()
+
+                // Navigate to dashboard with new biker ID if provided
+                if (result.biker?.id) {
+                    navigate(`/dashboard?bikerId=${result.biker.id}`)
+                }
+            } else {
+                console.error('Failed to add biker:', result.detail || result.message)
+
+                // Handle specific error cases
+                let errorMessage = 'Failed to add biker. Please try again.'
+
+                if (result.detail || result.message) {
+                    const errorText = result.detail || result.message
+
+                    // Check for unique constraint violations
+                    if (errorText.includes('UNIQUE constraint failed: bikers.email')) {
+                        setFormErrors({
+                            email: 'This email address is already registered with another biker.',
+                            submit: 'A biker with this email address already exists. Please use a different email address.'
+                        })
+                        return
+                    } else if (errorText.includes('UNIQUE constraint failed: bikers.phone_number')) {
+                        setFormErrors({
+                            phone_number: 'This phone number is already registered with another biker.',
+                            submit: 'A biker with this phone number already exists. Please use a different phone number.'
+                        })
+                        return
+                    } else if (errorText.includes('UNIQUE constraint failed')) {
+                        errorMessage = 'This information is already registered with another biker. Please check your details and try again.'
+                    } else if (errorText.includes('validation')) {
+                        errorMessage = 'Please check your information and make sure all fields are filled correctly.'
+                    } else {
+                        errorMessage = 'Unable to add biker. Please check your information and try again.'
+                    }
+                }
+
+                setFormErrors({ submit: errorMessage })
+            }
+        } catch (error) {
+            console.error('Error adding biker:', error)
+            setFormErrors({ submit: 'Network error. Please check your connection and try again.' })
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleFormChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }))
+        // Clear errors when user starts typing
+        if (formErrors[field] || formErrors.submit) {
+            setFormErrors(prev => {
+                const newErrors = { ...prev }
+                delete newErrors[field]
+                delete newErrors.submit
+                return newErrors
+            })
+        }
+    }
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -115,36 +233,60 @@ export default function Bikers() {
         <div>
             <DashboardHeader />
             <div className="bikers-container">
-                <div className="bikers-header">
-                    <h1 className="bikers-title">
-                        <FaUsers />
-                        Bikers Management
-                    </h1>
-                    <p className="bikers-subtitle">
-                        Manage and monitor all registered bikers in the system
-                    </p>
-                </div>
+                {/* Header Wrapper */}
+                <div className="bikers-header-wrapper">
 
-                {/* Statistics */}
-                <div className="bikers-stats">
-                    <div className="stat-card">
-                        <div className="stat-number">{data.length}</div>
-                        <div className="stat-label">Total Bikers</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">{filteredData.length}</div>
-                        <div className="stat-label">Filtered Results</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">
-                            {data.filter(b => new Date(b.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
+
+                    <div className="header-actions">
+                        <div>
+                            <div className="bikers-header">
+                                <h1 className="bikers-title">
+                                    <FaUsers />
+                                    Bikers Management
+                                </h1>
+                                <p className="bikers-subtitle">
+                                    Manage and monitor all registered bikers in the system
+                                </p>
+                            </div>
+                            <div className="action-buttons">
+                                <button
+                                    className="add-biker-btn"
+                                    onClick={() => setShowAddModal(true)}
+                                >
+                                    <FaPlus />
+                                    Add New Biker
+                                </button>
+                                <button
+                                    className={`toggle-filters-btn ${showFilters ? 'active' : ''}`}
+                                    onClick={() => setShowFilters(!showFilters)}
+                                >
+                                    <FaFilter />
+                                    {showFilters ? 'Hide Filters' : 'Show Filters'}
+                                </button>
+                            </div>
                         </div>
-                        <div className="stat-label">Last 30 Days</div>
+                        {/* Statistics */}
+                        <div className="bikers-stats">
+                            <div className="stat-item">
+                                <div className="stat-number">{data.length}</div>
+                                <div className="stat-label">Total Bikers</div>
+                            </div>
+                            <div className="stat-item">
+                                <div className="stat-number">{filteredData.length}</div>
+                                <div className="stat-label">Filtered Results</div>
+                            </div>
+                            <div className="stat-item">
+                                <div className="stat-number">
+                                    {data.filter(b => new Date(b.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length}
+                                </div>
+                                <div className="stat-label">Last 30 Days</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Filters Section */}
-                <div className="filters-section">
+                <div className={`filters-section ${showFilters ? 'visible' : 'hidden'}`}>
                     <h3 className="filters-title">
                         <FaFilter />
                         Filters
@@ -214,6 +356,117 @@ export default function Bikers() {
                         </div>
                     </div>
                 </div>
+
+                {/* Add Biker Modal */}
+                {showAddModal && (
+                    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowAddModal(false)}>
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h2 className="modal-title">
+                                    <FaUser />
+                                    Add New Biker
+                                </h2>
+                                <button
+                                    className="modal-close-btn"
+                                    onClick={() => setShowAddModal(false)}
+                                >
+                                    <FaTimes />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleFormSubmit}>
+                                <div className="form-group">
+                                    <label className="form-label">Name *</label>
+                                    <input
+                                        type="text"
+                                        className={`form-input ${formErrors.name ? 'error' : ''}`}
+                                        placeholder="Enter biker's full name"
+                                        value={formData.name}
+                                        onChange={(e) => handleFormChange('name', e.target.value)}
+                                        disabled={isSubmitting}
+                                    />
+                                    {formErrors.name && (
+                                        <div className="error-message">
+                                            <FaExclamationTriangle />
+                                            {formErrors.name}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Phone Number *</label>
+                                    <input
+                                        type="tel"
+                                        className={`form-input ${formErrors.phone_number ? 'error' : ''}`}
+                                        placeholder="Enter phone number (e.g., 03122246165)"
+                                        value={formData.phone_number}
+                                        onChange={(e) => handleFormChange('phone_number', e.target.value)}
+                                        disabled={isSubmitting}
+                                    />
+                                    {formErrors.phone_number && (
+                                        <div className="error-message">
+                                            <FaExclamationTriangle />
+                                            {formErrors.phone_number}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Email Address *</label>
+                                    <input
+                                        type="email"
+                                        className={`form-input ${formErrors.email ? 'error' : ''}`}
+                                        placeholder="Enter email address"
+                                        value={formData.email}
+                                        onChange={(e) => handleFormChange('email', e.target.value)}
+                                        disabled={isSubmitting}
+                                    />
+                                    {formErrors.email && (
+                                        <div className="error-message">
+                                            <FaExclamationTriangle />
+                                            {formErrors.email}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {formErrors.submit && (
+                                    <div className="error-message" style={{ marginBottom: '20px' }}>
+                                        <FaExclamationTriangle />
+                                        {formErrors.submit}
+                                    </div>
+                                )}
+
+                                <div className="form-actions">
+                                    <button
+                                        type="button"
+                                        className="form-btn secondary"
+                                        onClick={() => setShowAddModal(false)}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="form-btn primary"
+                                        disabled={isSubmitting}
+                                    >
+                                        {isSubmitting ? (
+                                            <div className="loading-text">
+                                                <div className="spinner"></div>
+                                                Adding...
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <FaPlus />
+                                                Add Biker
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 {/* Bikers Grid */}
                 {filteredData.length === 0 ? (
