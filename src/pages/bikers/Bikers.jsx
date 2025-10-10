@@ -90,7 +90,7 @@ export default function Bikers() {
     }
 
     const handleBikerClick = (bikerId) => {
-        navigate(`/dashboard?bikerId=${bikerId}`)
+        navigate(`/dashboard?bikerId=${bikerId}&rideId=${0}`)
     }
 
     const validateForm = () => {

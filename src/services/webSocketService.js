@@ -95,25 +95,38 @@ class WebSocketService {
                 }
 
                 try {
-                    const message = JSON.parse(event.data);
-                    this.log(`📥 Message from ${cameraType}:`, message.type);
+                    // Handle binary data (video frames)
+                    if (event.data instanceof Blob) {
+                        this.log(`📷 Binary data received from ${cameraType}: ${event.data.size} bytes`);
+                        this.handleBinaryData(cameraType, event.data);
+                        return;
+                    }
 
-                    // Handle specific message types
-                    this.handleMessage(cameraType, message);
+                    // Handle text data (JSON messages)
+                    if (typeof event.data === 'string') {
+                        const message = JSON.parse(event.data);
+                        this.log(`📥 Message from ${cameraType}:`, message.type);
 
-                    // Notify all listeners
-                    const listeners = this.listeners.get(cameraType);
-                    if (listeners) {
-                        listeners.forEach(listener => {
-                            try {
-                                listener(message);
-                            } catch (error) {
-                                console.error(`Error in WebSocket listener for ${cameraType}:`, error);
-                            }
-                        });
+                        // Handle specific message types
+                        this.handleMessage(cameraType, message);
+
+                        // Notify all listeners
+                        const listeners = this.listeners.get(cameraType);
+                        if (listeners) {
+                            listeners.forEach(listener => {
+                                try {
+                                    listener(message);
+                                } catch (error) {
+                                    console.error(`Error in WebSocket listener for ${cameraType}:`, error);
+                                }
+                            });
+                        }
+                    } else {
+                        console.warn(`Unknown data type received from ${cameraType}:`, typeof event.data);
                     }
                 } catch (error) {
-                    console.error(`Error parsing WebSocket message from ${cameraType}:`, error);
+                    console.error(`Error processing WebSocket message from ${cameraType}:`, error);
+                    console.log('Raw data:', event.data);
                 }
             };
 
@@ -135,6 +148,37 @@ class WebSocketService {
             console.error(`Failed to create WebSocket connection for ${cameraType}:`, error);
             onStatusChange?.(false);
         }
+    }
+
+    /**
+     * Handle binary data (video frames)
+     */
+    handleBinaryData(cameraType, blobData) {
+        // Convert blob to data URL for display
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64Data = reader.result;
+            this.log(`📷 Video frame processed for ${cameraType}: ${base64Data.length} chars`);
+
+            // Call video frame handler with the base64 data
+            const handler = this.videoHandlers.get(cameraType);
+            if (handler) {
+                try {
+                    handler({
+                        camera_type: cameraType,
+                        frame: base64Data,
+                        timestamp: Date.now(),
+                        size: blobData.size
+                    });
+                } catch (error) {
+                    console.error(`Error in video frame handler for ${cameraType}:`, error);
+                }
+            }
+        };
+        reader.onerror = (error) => {
+            console.error(`Error reading binary data for ${cameraType}:`, error);
+        };
+        reader.readAsDataURL(blobData);
     }
 
     /**
