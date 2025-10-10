@@ -105,7 +105,7 @@ export default function Rides() {
         navigate(`/dashboard?bikerId=${bikerId}&rideId=${rideId}`)
     }
 
-    const handleDownloadVideo = async (annotatedPath) => {
+    const handleDownloadVideo = async (annotatedPath, videoName = null) => {
         try {
             const encodedPath = encodeURIComponent(annotatedPath)
             const downloadUrl = `http://0.0.0.0:5455/download-video/?file_path=${encodedPath}`
@@ -113,13 +113,39 @@ export default function Rides() {
             // Create a temporary link and trigger download
             const link = document.createElement('a')
             link.href = downloadUrl
-            link.download = annotatedPath.split('/').pop() // Get filename from path
+            link.download = videoName || annotatedPath.split('/').pop() // Use provided name or extract from path
             document.body.appendChild(link)
             link.click()
             document.body.removeChild(link)
         } catch (error) {
             console.error('Error downloading video:', error)
         }
+    }
+
+    const handleDownloadAllVideos = async (videos) => {
+        const annotatedVideos = videos.filter(v => v.annotated_path)
+
+        if (annotatedVideos.length === 0) {
+            console.warn('No processed videos available for download')
+            return
+        }
+
+        // Download all videos with a small delay between each to avoid overwhelming the server
+        for (let i = 0; i < annotatedVideos.length; i++) {
+            const video = annotatedVideos[i]
+            setTimeout(() => {
+                handleDownloadVideo(video.annotated_path, video.video_name)
+            }, i * 500) // 500ms delay between downloads
+        }
+    }
+
+    const getVideoTypeIcon = (videoName) => {
+        if (videoName?.toLowerCase().includes('front')) {
+            return <FaVideo className="video-type-icon front" title="Front Camera" />
+        } else if (videoName?.toLowerCase().includes('back')) {
+            return <FaVideo className="video-type-icon back" title="Back Camera" />
+        }
+        return <FaVideo className="video-type-icon" />
     }
 
     const formatDate = (dateString) => {
@@ -383,18 +409,46 @@ export default function Rides() {
 
                                         {ride.videos && ride.videos.length > 0 && (
                                             <div className="video-info">
+                                                <div className="video-header">
+                                                    <span className="video-section-title">Video Files ({ride.videos.length})</span>
+                                                </div>
                                                 {ride.videos.map((video, index) => (
                                                     <div key={video.id} className="video-item">
-                                                        <span className="video-name">{video.video_name}</span>
-                                                        <div className="video-status">
-                                                            {video.processed_at ? (
-                                                                <span className="processed-time">
-                                                                    Processed: {formatDate(video.processed_at)}
+                                                        <div className="video-main-info">
+                                                            <div className="video-name-row">
+                                                                {getVideoTypeIcon(video.video_name)}
+                                                                <span className="video-name" title={video.video_name}>
+                                                                    {video.video_name}
                                                                 </span>
-                                                            ) : (
-                                                                <span className="pending-status">Processing pending</span>
-                                                            )}
+                                                            </div>
+                                                            <div className="video-status">
+                                                                {video.annotated_path ? (
+                                                                    <span className="processed-time">
+                                                                        <FaCheckCircle className="status-mini-icon" />
+                                                                        Processed: {formatDate(video.processed_at)}
+                                                                    </span>
+                                                                ) : video.processed_at ? (
+                                                                    <span className="processing-time">
+                                                                        <FaClock className="status-mini-icon" />
+                                                                        Processing completed: {formatDate(video.processed_at)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="pending-status">
+                                                                        <FaExclamationTriangle className="status-mini-icon" />
+                                                                        Processing pending
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
+                                                        {video.annotated_path && (
+                                                            <button
+                                                                className="individual-download-btn"
+                                                                onClick={() => handleDownloadVideo(video.annotated_path, video.video_name)}
+                                                                title="Download this video"
+                                                            >
+                                                                <FaDownload />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -412,19 +466,32 @@ export default function Rides() {
                                         </button>
 
                                         {hasAnnotatedVideo && (
-                                            <button
-                                                className="action-btn download-btn"
-                                                onClick={() => {
-                                                    const annotatedVideo = ride.videos.find(v => v.annotated_path)
-                                                    if (annotatedVideo) {
-                                                        handleDownloadVideo(annotatedVideo.annotated_path)
-                                                    }
-                                                }}
-                                                title="Download processed video"
-                                            >
-                                                <FaDownload />
-                                                <span>Download Video</span>
-                                            </button>
+                                            <>
+                                                {ride.videos.filter(v => v.annotated_path).length > 1 ? (
+                                                    <button
+                                                        className="action-btn download-btn"
+                                                        onClick={() => handleDownloadAllVideos(ride.videos)}
+                                                        title="Download all processed videos"
+                                                    >
+                                                        <FaDownload />
+                                                        <span>Download All ({ride.videos.filter(v => v.annotated_path).length})</span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="action-btn download-btn"
+                                                        onClick={() => {
+                                                            const annotatedVideo = ride.videos.find(v => v.annotated_path)
+                                                            if (annotatedVideo) {
+                                                                handleDownloadVideo(annotatedVideo.annotated_path, annotatedVideo.video_name)
+                                                            }
+                                                        }}
+                                                        title="Download processed video"
+                                                    >
+                                                        <FaDownload />
+                                                        <span>Download Video</span>
+                                                    </button>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </div>
