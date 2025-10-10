@@ -70,6 +70,22 @@ body {
   color: #495057;
 }
 
+.previous-rides-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #00c851, #007e33);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 3px 10px rgba(0, 200, 81, 0.3);
+  font-size: 0.95rem;
+}
+
 .connection-indicator {
   display: flex;
   align-items: center;
