@@ -21,6 +21,9 @@ export const useAppStore = create(
       violationHistory: [],
       gpsHistory: [],
       ride_id: null,
+      rideData: {},
+
+      // Actions
 
       setStatus: (status) => set({ status }),
       setFrontLaneData: (data) => set({ frontLaneData: data }),
@@ -46,6 +49,7 @@ export const useAppStore = create(
         })),
       clearGpsHistory: () => set({ gpsHistory: [] }),
       setRideId: (id) => set({ ride_id: id }),
+      setRideData: (data) => set({ rideData: data }),
 
 
       resetState: () =>

@@ -2,11 +2,17 @@ import React from "react";
 import { useAppStore } from "../../../store/appStore";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../../assets/police.jpg"; // Adjust the path as necessary
+import { FaPlus } from "react-icons/fa";
+
 
 const DashboardHeader = () => {
   const status = useAppStore((state) => state.status);
   const location = useLocation();
   const navigate = useNavigate();
+
+  //get Ride Data from store
+  const setRideData = useAppStore((state) => state.setRideData);
+  const rideData = useAppStore((state) => state.rideData);
 
   // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
@@ -14,6 +20,7 @@ const DashboardHeader = () => {
   // Get bikerId from URL parameters
   const urlParams = new URLSearchParams(location.search);
   const bikerId = urlParams.get('bikerId');
+  const rideId = urlParams.get('rideId');
 
   // Handle navigation to rides page
   const handlePreviousRidesClick = () => {
@@ -23,6 +30,13 @@ const DashboardHeader = () => {
       navigate('/rides');
     }
   };
+
+  // Handle adding a new ride
+  const handleAddNewRide = () => {
+    navigate(`/dashboard?bikerId=${bikerId}&rideId=0`)
+    setRideData({});
+  }
+
 
   return (
     <header className="dashboard-header">
@@ -39,7 +53,7 @@ const DashboardHeader = () => {
 
       <div className="status-section">
         {/* Previous Rides Button - Only show on dashboard page */}
-        {isDashboardPage && (
+        {isDashboardPage && (<>
           <button
             className="previous-rides-btn"
             onClick={handlePreviousRidesClick}
@@ -48,6 +62,14 @@ const DashboardHeader = () => {
             <i className="fas fa-history"></i>
             <span>Previous Rides</span>
           </button>
+          {rideId && rideId != 0 && < button
+            className="add-new-ride-btn"
+            onClick={handleAddNewRide}
+          >
+            <FaPlus />
+            Add New Ride
+          </button>}
+        </>
         )}
 
         {/* <div className="connection-indicator">
@@ -65,7 +87,7 @@ const DashboardHeader = () => {
           <span id="currentTime"></span>
         </div> */}
       </div>
-    </header>
+    </header >
   );
 };
 

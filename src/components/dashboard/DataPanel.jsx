@@ -92,22 +92,24 @@ const DataPanel = () => {
                 "Unknown"}
             </span>
           </div>
-          <div className="data-item">
+
+          {/* <div className="data-item">
             <span className="data-label">Left Lane:</span>
             <span className="data-value" id="leftLane">
               {frontLaneData?.left_class_name ||
                 backLaneData?.left_class_name ||
                 "None"}
             </span>
-          </div>
-          <div className="data-item">
+          </div> */}
+
+          {/* <div className="data-item">
             <span className="data-label">Right Lane:</span>
             <span className="data-value" id="rightLane">
               {frontLaneData?.right_class_name ||
                 backLaneData?.right_class_name ||
                 "None"}
             </span>
-          </div>
+          </div> */}
           <div className="data-item">
             <span className="data-label">Time in Lane:</span>
             <span className="data-value" id="timeInLane">
@@ -158,13 +160,13 @@ const DataPanel = () => {
           id="locationAccuracy"
           style={{ textAlign: "center", fontSize: "0.85em", opacity: 0.7 }}
         >
-          {!(frontGPSData?.latitude || backGPSData?.latitude) &&
-            "Waiting for GPS data..."}
+          {/* {!(frontGPSData?.latitude || backGPSData?.latitude) &&
+            "Waiting for GPS data..."} */}
         </div>
       </div>
 
       {/* Processing Log Card */}
-      <div className="data-card log-card">
+      {/* <div className="data-card log-card">
         <div className="card-title">
           <i className="fas fa-list-alt"></i>
           Processing Log
@@ -174,7 +176,7 @@ const DataPanel = () => {
             System ready. Upload a video file to begin processing.
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -2,8 +2,9 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import { getData } from '../../api/axios'
-import { FaMotorcycle, FaVideo, FaDownload, FaEye, FaCalendar, FaFilter, FaTimes, FaSearch, FaPlay, FaExclamationTriangle, FaCheckCircle, FaClock } from 'react-icons/fa'
+import { FaMotorcycle, FaVideo, FaDownload, FaEye, FaCalendar, FaFilter, FaTimes, FaSearch, FaPlay, FaExclamationTriangle, FaCheckCircle, FaClock, FaPlus } from 'react-icons/fa'
 import './Rides.css'
+import { useAppStore } from '../../../store/appStore'
 
 export default function Rides() {
     const [data, setData] = useState([])
@@ -17,6 +18,9 @@ export default function Rides() {
         processingStatus: ''
     })
     const [bikerInfo, setBikerInfo] = useState(null)
+
+    // Access setRideData from the global store
+    const setRideData = useAppStore((state) => state.setRideData)
 
     const navigate = useNavigate()
     const location = useLocation()
@@ -58,6 +62,12 @@ export default function Rides() {
     useEffect(() => {
         getRides()
     }, [bikerId])
+
+    // Handle adding a new ride
+    const handleAddNewRide = () => {
+        navigate(`/dashboard?bikerId=${bikerId}&rideId=0`)
+        setRideData({});
+    }
 
     // Filtered data based on current filters
     const filteredData = useMemo(() => {
@@ -101,7 +111,10 @@ export default function Rides() {
         })
     }
 
-    const handleViewDashboard = (rideId) => {
+    const handleViewDashboard = (rideId, ride = null) => {
+        if (ride) {
+            setRideData(ride);
+        }
         navigate(`/dashboard?bikerId=${bikerId}&rideId=${rideId}`)
     }
 
@@ -256,6 +269,13 @@ export default function Rides() {
                                     <FaMotorcycle />
                                     Back to Bikers
                                 </button>
+                                <button
+                                    className="add-new-ride-btn"
+                                    onClick={handleAddNewRide}
+                                >
+                                    <FaPlus />
+                                    Add New Ride
+                                </button>
                             </div>
                         </div>
 
@@ -273,7 +293,7 @@ export default function Rides() {
                                 <div className="stat-number">
                                     {data.filter(ride => ride.videos?.some(v => v.annotated_path)).length}
                                 </div>
-                                <div className="stat-label">Processed Videos</div>
+                                <div className="stat-label">Processed</div>
                             </div>
                         </div>
                     </div>
@@ -458,7 +478,7 @@ export default function Rides() {
                                     <div className="ride-actions">
                                         <button
                                             className="action-btn view-btn"
-                                            onClick={() => handleViewDashboard(ride.id)}
+                                            onClick={() => handleViewDashboard(ride?.id, ride)}
                                             title="View in dashboard"
                                         >
                                             <FaEye />
