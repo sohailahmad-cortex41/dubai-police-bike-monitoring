@@ -25,6 +25,8 @@ const CameraWindow = ({ cameraType }) => {
   const label = isFront ? "Front" : "Back";
 
   const status = useAppStore((state) => state.status);
+  const frontCameraFilePath = useAppStore((state) => state.frontCameraFilePath);
+  const backCameraFilePath = useAppStore((state) => state?.backCameraFilePath);
   const setFrontCameraFilePath = useAppStore(
     (state) => state.setFrontCameraFilePath
   );
@@ -306,6 +308,7 @@ const CameraWindow = ({ cameraType }) => {
           {uploadedFileName && !uploading && (
             <span>Uploaded: {uploadedFileName}</span>
           )}
+          <span> {label == 'Front' ? frontCameraFilePath?.split("/").pop() : backCameraFilePath?.split("/").pop()}</span>
           {uploadError && (
             <span style={{ color: "#dc3545" }}>{uploadError}</span>
           )}

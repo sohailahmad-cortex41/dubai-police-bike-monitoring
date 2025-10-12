@@ -13,6 +13,7 @@ const DashboardHeader = () => {
   //get Ride Data from store
   const setRideData = useAppStore((state) => state.setRideData);
   const rideData = useAppStore((state) => state.rideData);
+  const setStatus = useAppStore((state) => state.setStatus);
 
   // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
@@ -26,6 +27,8 @@ const DashboardHeader = () => {
   const handlePreviousRidesClick = () => {
     if (bikerId) {
       navigate(`/rides?bikerId=${bikerId}`);
+      // Reset status when navigating away
+      setStatus({ front: false, back: false });
     } else {
       navigate('/rides');
     }

@@ -1,12 +1,11 @@
 import React, { use, useEffect } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { postData } from "../../api/axios";
-import useWebSocket from "../../hooks/useWebSocket";
+import webSocketService from "../../services/webSocketService";
 
 
 const ControlPanel = () => {
-  const frontWS = useWebSocket('front');
-  const backWS = useWebSocket('back');
+  // Use the WebSocketService directly instead of a hook
 
   const status = useAppStore((state) => state.status);
   const setStatus = useAppStore((state) => state.setStatus);
@@ -41,10 +40,22 @@ const ControlPanel = () => {
 
     console.log(`Starting ${type} camera with data:`, apiData);
     const response = await postData("start-processing", apiData, "form");
-    if (type == 'front') {
-      frontWS.connect();
-    } else {
-      backWS.connect();
+
+    // Connect WebSocket using the service
+    try {
+      webSocketService.connect(
+        type,
+        (message) => {
+          console.log(`Message from ${type} camera:`, message);
+          // Handle messages here if needed
+        },
+        (isConnected) => {
+          console.log(`${type} camera WebSocket status:`, isConnected);
+          // Update connection status if needed
+        }
+      );
+    } catch (error) {
+      console.error(`Error connecting ${type} WebSocket:`, error);
     }
 
     console.log(`Camera ${type} started:`, response);
@@ -63,12 +74,28 @@ const ControlPanel = () => {
 
     console.log(`Stopping ${type} camera with data:`, apiData);
     const response = await postData("stop-processing", apiData, "form");
-    console.log(`Camera ${type} stopped:`, response);
 
+    // Disconnect WebSocket
+    try {
+      webSocketService.disconnect(type);
+      console.log(`${type} camera WebSocket disconnected`);
+    } catch (error) {
+      console.error(`Error disconnecting ${type} WebSocket:`, error);
+    }
+
+    console.log(`Camera ${type} stopped:`, response);
   };
 
   const handleStopAll = () => {
     setStatus({ front: false, back: false });
+
+    // Disconnect all WebSockets
+    try {
+      webSocketService.disconnectAll();
+      console.log('All WebSocket connections closed');
+    } catch (error) {
+      console.error('Error disconnecting all WebSockets:', error);
+    }
   };
 
   const handleClearAllData = () => {

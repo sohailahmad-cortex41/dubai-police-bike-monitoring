@@ -56,8 +56,8 @@ const MapSection = () => {
       const nextPoint = uniqueGpsHistory[i + 1];
 
       // Determine if each point is a speed violation
-      const currentIsViolation = currentPoint.speed > 70;
-      const nextIsViolation = nextPoint.speed > 70;
+      const currentIsViolation = currentPoint.speed > speedLimit;
+      const nextIsViolation = nextPoint.speed > speedLimit;
 
       // Determine line color based on both points
       let color;
@@ -148,8 +148,8 @@ const MapSection = () => {
 
         {/* Render GPS history points with color based on speed */}
         {uniqueGpsHistory.map((point, index) => {
-          const isSpeedViolation = point.speed > 70;
-          const color = isSpeedViolation ? "#dc3545" : "#28a745"; // Red for >70, Green for ≤70
+          const isSpeedViolation = point.speed > speedLimit;
+          const color = isSpeedViolation ? "#dc3545" : "#28a745"; // Red for  speedLimit, Green for  speedLimit
 
           return (
             <CircleMarker
@@ -189,11 +189,11 @@ const MapSection = () => {
       <div className="map-legend">
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#28a745" }}></div>
-          <span>Normal Speed Route (≤70 km/h)</span>
+          <span>Normal Speed Route ( {speedLimit} km/h)</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#dc3545" }}></div>
-          <span>Speed Violation Route (&gt;70 km/h)</span>
+          <span>Speed Violation Route ( {speedLimit} km/h)</span>
         </div>
         <div className="legend-item">
           <div className="legend-color" style={{ background: "#007bff" }}></div>

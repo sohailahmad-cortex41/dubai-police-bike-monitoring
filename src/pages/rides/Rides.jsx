@@ -23,7 +23,10 @@ export default function Rides() {
     const [selectedRideViolations, setSelectedRideViolations] = useState(null)
 
     // Access setRideData from the global store
-    const setRideData = useAppStore((state) => state.setRideData)
+    const setRideData = useAppStore((state) => state.setRideData);
+    const resetState = useAppStore((state) => state.resetState);
+    const setFrontCameraFilePath = useAppStore((state) => state.setFrontCameraFilePath)
+    const setBackCameraFilePath = useAppStore((state) => state.setBackCameraFilePath)
 
     const navigate = useNavigate()
     const location = useLocation()
@@ -44,7 +47,7 @@ export default function Rides() {
             const response = await getData(`rides/?biker_id=${bikerId}`)
 
             if (response?.status === 'success') {
-                const ridesData = response.rides || []
+                const ridesData = response?.rides?.reverse() || []
                 console.log('Rides data:', ridesData)
                 setData(ridesData)
 
@@ -141,10 +144,24 @@ export default function Rides() {
     }
 
     const handleViewDashboard = (rideId, ride = null) => {
-        if (ride) {
-            setRideData(ride);
-        }
+        console.log('ride in rides', rideId, ride);
+        resetState();
+        setRideData(ride || {});
+        // loop through videos
+        ride?.videos.forEach((video) => {
+            const prefix = video.video_name.slice(0, 5).toLowerCase(); // first 5 letters
+            if (prefix === "front") {
+                console.log('video of front in ride', video?.original_path)
+                setFrontCameraFilePath(video?.original_path);
+            } else if (prefix === "back_") {
+                console.log('video of back in ride', video?.original_path)
+                setBackCameraFilePath(video?.original_path);
+            }
+        });
+
+
         navigate(`/dashboard?bikerId=${bikerId}&rideId=${rideId}`)
+
     }
 
     const handleDownloadVideo = async (annotatedPath, videoName = null) => {
