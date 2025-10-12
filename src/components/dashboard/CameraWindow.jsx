@@ -4,11 +4,14 @@ import { postData } from "../../api/axios";
 import { toast } from "react-hot-toast";
 import Loader from "../Loader";
 import useWebSocket from "../../hooks/useWebSocket";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const CameraWindow = ({ cameraType }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const bikerId = location.search ? new URLSearchParams(location.search).get("bikerId") : null;
+  const rideId = location.search ? new URLSearchParams(location.search).get("rideId") : null;
+
   const fileInputRef = useRef();
   const videoRef = useRef();
   const [uploading, setUploading] = useState(false);
@@ -61,30 +64,56 @@ const CameraWindow = ({ cameraType }) => {
     setUploading(true);
     setUploadedFileName("");
     try {
-      const formData = new FormData();
-      Array.from(e.target.files).forEach((file, idx) => {
-        formData.append("files", file);
-      });
-      formData.append("camera_type", cameraType);
-      if (bikerId) {
-        formData.append("biker_id", bikerId);
-      }
-      // number plate 
-      // for now generate a random number plate
-      const randomPlate = `D${Math.floor(1000 + Math.random() * 9000)}XX`;
-      formData.append("plate_number", randomPlate);
-      formData.append("folder_name", randomPlate);
-      const response = await postData("rides-with-videos/", formData, "form");
+      if (rideId == 0 || rideId === "0") {
+        const formData = new FormData();
+        Array.from(e.target.files).forEach((file, idx) => {
+          formData.append("files", file);
+        });
+        formData.append("camera_type", cameraType);
+        if (bikerId) {
+          formData.append("biker_id", bikerId);
+        }
+        // number plate 
+        // for now generate a random number plate
+        const randomPlate = `D${Math.floor(1000 + Math.random() * 9000)}XX`;
+        formData.append("plate_number", randomPlate);
+        formData.append("folder_name", randomPlate);
+        const response = await postData("rides-with-videos/", formData, "form");
 
-      setUploadedFileName(file.name);
+        setUploadedFileName(file.name);
 
-      setRideId(response?.ride_id);
-      if (cameraType === "front") {
-        setFrontCameraFilePath(response?.files[0]?.rel_path);
+        setRideId(response?.ride_id);
+
+        if (cameraType === "front") {
+          setFrontCameraFilePath(response?.files[0]?.rel_path);
+        } else {
+          setBackCameraFilePath(response?.files[0]?.rel_path);
+        }
+        toast.success(`${label} camera video uploaded successfully!`);
+        navigate(`/dashboard?bikerId=${bikerId}&rideId=${response?.ride_id}`);
       } else {
-        setBackCameraFilePath(response?.file_path);
+        const formData = new FormData();
+        Array.from(e.target.files).forEach((file, idx) => {
+          formData.append("files", file);
+        });
+        formData.append("camera_type", cameraType);
+        formData.append("ride_id", rideId);
+
+        formData.append("folder_name", 'ride_' + rideId);
+        const response = await postData("upload-multiple-videos/", formData, "form");
+
+        setUploadedFileName(file.name);
+
+
+        if (cameraType === "front") {
+          setFrontCameraFilePath(response?.files[0]?.rel_path);
+        } else {
+          setBackCameraFilePath(response?.files[0]?.rel_path);
+        }
+        toast.success(`${label} camera video uploaded successfully!`);
+        navigate(`/dashboard?bikerId=${bikerId}&rideId=${response?.ride_id}`);
       }
-      toast.success(`${label} camera video uploaded successfully!`);
+
     } catch (err) {
       const errorMsg =
         err?.message || "Failed to upload video. Please try again.";

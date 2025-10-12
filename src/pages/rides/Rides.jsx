@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import { getData } from '../../api/axios'
-import { FaMotorcycle, FaVideo, FaDownload, FaEye, FaCalendar, FaFilter, FaTimes, FaSearch, FaPlay, FaExclamationTriangle, FaCheckCircle, FaClock, FaPlus } from 'react-icons/fa'
+import { FaMotorcycle, FaVideo, FaDownload, FaEye, FaCalendar, FaFilter, FaTimes, FaSearch, FaPlay, FaExclamationTriangle, FaCheckCircle, FaClock, FaPlus, FaShieldAlt, FaChartBar, FaListAlt } from 'react-icons/fa'
 import './Rides.css'
 import { useAppStore } from '../../../store/appStore'
 
@@ -18,6 +18,9 @@ export default function Rides() {
         processingStatus: ''
     })
     const [bikerInfo, setBikerInfo] = useState(null)
+    const [violationsData, setViolationsData] = useState({})
+    const [showViolationsModal, setShowViolationsModal] = useState(false)
+    const [selectedRideViolations, setSelectedRideViolations] = useState(null)
 
     // Access setRideData from the global store
     const setRideData = useAppStore((state) => state.setRideData)
@@ -49,6 +52,9 @@ export default function Rides() {
                 if (ridesData.length > 0 && ridesData[0].biker) {
                     setBikerInfo(ridesData[0].biker)
                 }
+
+                // Fetch violations for all rides
+                await fetchAllViolations(ridesData)
             } else {
                 console.error('Failed to fetch rides data:', response?.message)
             }
@@ -57,6 +63,29 @@ export default function Rides() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const getViolations = async (rideId) => {
+        try {
+            const response = await getData(`violations/?ride_id=${rideId}`)
+            if (response?.status === 'success') {
+                return response.violations || []
+            }
+        } catch (error) {
+            console.error(`Error fetching violations for ride ${rideId}:`, error)
+        }
+        return []
+    }
+
+    const fetchAllViolations = async (ridesData) => {
+        const violationsMap = {}
+
+        for (const ride of ridesData) {
+            const violations = await getViolations(ride.id)
+            violationsMap[ride.id] = violations
+        }
+
+        setViolationsData(violationsMap)
     }
 
     useEffect(() => {
@@ -159,6 +188,68 @@ export default function Rides() {
             return <FaVideo className="video-type-icon back" title="Back Camera" />
         }
         return <FaVideo className="video-type-icon" />
+    }
+
+    const getViolationStats = (rideId) => {
+        const violations = violationsData[rideId] || []
+        const stats = {}
+        const videoStats = {}
+
+        violations.forEach(violation => {
+            // Overall stats
+            if (!stats[violation.violation_type]) {
+                stats[violation.violation_type] = 0
+            }
+            stats[violation.violation_type]++
+
+            // Video-wise stats
+            if (!videoStats[violation.video_id]) {
+                videoStats[violation.video_id] = {}
+            }
+            if (!videoStats[violation.video_id][violation.violation_type]) {
+                videoStats[violation.video_id][violation.violation_type] = 0
+            }
+            videoStats[violation.video_id][violation.violation_type]++
+        })
+
+        return {
+            overall: stats,
+            byVideo: videoStats,
+            total: violations.length
+        }
+    }
+
+    const getViolationTypeIcon = (type) => {
+        switch (type) {
+            case 'fast_lane_violation': return '🚗'
+            case 'lane_switch_violation': return '↔️'
+            case 'speed_violation': return '⚡'
+            default: return '⚠️'
+        }
+    }
+
+    const getViolationTypeColor = (type) => {
+        switch (type) {
+            case 'fast_lane_violation': return '#e74c3c'
+            case 'lane_switch_violation': return '#f39c12'
+            case 'speed_violation': return '#8e44ad'
+            default: return '#95a5a6'
+        }
+    }
+
+    const formatViolationType = (type) => {
+        return type.split('_').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ')
+    }
+
+    const handleShowViolations = (ride) => {
+        setSelectedRideViolations({
+            ride,
+            violations: violationsData[ride.id] || [],
+            stats: getViolationStats(ride.id)
+        })
+        setShowViolationsModal(true)
     }
 
     const formatDate = (dateString) => {
@@ -393,6 +484,7 @@ export default function Rides() {
                         {filteredData.map((ride) => {
                             const processingStatus = getProcessingStatus(ride.videos)
                             const hasAnnotatedVideo = ride.videos?.some(v => v.annotated_path)
+                            const violationStats = getViolationStats(ride.id)
 
                             return (
                                 <div key={ride.id} className="ride-card">
@@ -427,6 +519,39 @@ export default function Rides() {
                                             </span>
                                         </div>
 
+                                        <div className="ride-detail">
+                                            <FaShieldAlt className="detail-icon violations" />
+                                            <span className="detail-text">
+                                                Violations: {violationStats.total}
+                                                {violationStats.total > 0 && (
+                                                    <button
+                                                        className="violations-summary-btn"
+                                                        onClick={() => handleShowViolations(ride)}
+                                                        title="View detailed violations"
+                                                    >
+                                                        <FaListAlt />
+                                                        View Details
+                                                    </button>
+                                                )}
+                                            </span>
+                                        </div>
+
+                                        {violationStats.total > 0 && (
+                                            <div className="violations-preview">
+                                                <div className="violations-types">
+                                                    {Object.entries(violationStats.overall).map(([type, count]) => (
+                                                        <span
+                                                            key={type}
+                                                            className="violation-type-badge"
+                                                            style={{ backgroundColor: getViolationTypeColor(type) }}
+                                                        >
+                                                            {getViolationTypeIcon(type)} {formatViolationType(type)}: {count}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {ride.videos && ride.videos.length > 0 && (
                                             <div className="video-info">
                                                 <div className="video-header">
@@ -440,6 +565,12 @@ export default function Rides() {
                                                                 <span className="video-name" title={video.video_name}>
                                                                     {video.video_name}
                                                                 </span>
+                                                                {violationStats.byVideo[video.id] && (
+                                                                    <div className="video-violations-count">
+                                                                        <FaShieldAlt />
+                                                                        {Object.values(violationStats.byVideo[video.id]).reduce((a, b) => a + b, 0)}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             <div className="video-status">
                                                                 {video.annotated_path ? (
@@ -520,6 +651,133 @@ export default function Rides() {
                     </div>
                 )}
             </div>
+
+            {/* Violations Modal */}
+            {showViolationsModal && selectedRideViolations && (
+                <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowViolationsModal(false)}>
+                    <div className="violations-modal">
+                        <div className="modal-header">
+                            <h2 className="modal-title">
+                                <FaShieldAlt />
+                                Violations for Ride {selectedRideViolations.ride.id} - {selectedRideViolations.ride.plate_number}
+                            </h2>
+                            <button
+                                className="modal-close-btn"
+                                onClick={() => setShowViolationsModal(false)}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+
+                        <div className="violations-modal-content">
+                            {/* Overall Summary */}
+                            <div className="violations-summary">
+                                <h3 className="summary-title">
+                                    <FaChartBar />
+                                    Overall Summary
+                                </h3>
+                                <div className="summary-stats">
+                                    <div className="total-violations">
+                                        <span className="stat-number">{selectedRideViolations.stats.total}</span>
+                                        <span className="stat-label">Total Violations</span>
+                                    </div>
+                                    <div className="violation-types-summary">
+                                        {Object.entries(selectedRideViolations.stats.overall).map(([type, count]) => (
+                                            <div key={type} className="type-summary">
+                                                <span className="type-icon">{getViolationTypeIcon(type)}</span>
+                                                <span className="type-name">{formatViolationType(type)}</span>
+                                                <span className="type-count">{count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Video-wise breakdown */}
+                            <div className="video-violations-breakdown">
+                                <h3 className="breakdown-title">
+                                    <FaVideo />
+                                    Video-wise Breakdown
+                                </h3>
+                                {Object.entries(selectedRideViolations.stats.byVideo).map(([videoId, violations]) => {
+                                    const video = selectedRideViolations.ride.videos.find(v => v.id === parseInt(videoId))
+                                    return (
+                                        <div key={videoId} className="video-violation-card">
+                                            <div className="video-card-header">
+                                                {getVideoTypeIcon(video?.video_name)}
+                                                <span className="video-card-name">{video?.video_name || `Video ${videoId}`}</span>
+                                                <span className="video-violation-total">
+                                                    {Object.values(violations).reduce((a, b) => a + b, 0)} violations
+                                                </span>
+                                            </div>
+                                            <div className="video-violation-types">
+                                                {Object.entries(violations).map(([type, count]) => (
+                                                    <div key={type} className="violation-type-item">
+                                                        <span className="violation-icon">{getViolationTypeIcon(type)}</span>
+                                                        <span className="violation-name">{formatViolationType(type)}</span>
+                                                        <span className="violation-count">{count}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+
+                            {/* Detailed violations list */}
+                            <div className="detailed-violations">
+                                <h3 className="details-title">
+                                    <FaListAlt />
+                                    Detailed Violations ({selectedRideViolations.violations.length})
+                                </h3>
+                                <div className="violations-table">
+                                    <div className="table-header">
+                                        <span>ID</span>
+                                        <span>Video</span>
+                                        <span>Type</span>
+                                        <span>Video Time</span>
+                                        <span>Occurred At</span>
+                                        <span>Detected At</span>
+                                    </div>
+                                    <div className="table-body">
+                                        {selectedRideViolations.violations.map((violation) => {
+                                            const video = selectedRideViolations.ride.videos.find(v => v.id === violation.video_id)
+                                            return (
+                                                <div key={violation.id} className="violation-row">
+                                                    <span className="violation-id">#{violation.id}</span>
+                                                    <span className="violation-video">
+                                                        {getVideoTypeIcon(video?.video_name)}
+                                                        {video?.video_name?.split('_')[0] || `Video ${violation.video_id}`}
+                                                    </span>
+                                                    <span className="violation-type">
+                                                        <span
+                                                            className="type-badge"
+                                                            style={{ backgroundColor: getViolationTypeColor(violation.violation_type) }}
+                                                        >
+                                                            {getViolationTypeIcon(violation.violation_type)}
+                                                            {formatViolationType(violation.violation_type)}
+                                                        </span>
+                                                    </span>
+                                                    <span className="violation-video-time">{violation.violation_video_time}</span>
+                                                    <span className="violation-occur-time">
+                                                        {violation.violation_occur_time ?
+                                                            formatDate(violation.violation_occur_time) :
+                                                            'N/A'
+                                                        }
+                                                    </span>
+                                                    <span className="violation-created-at">
+                                                        {formatDate(violation.created_at)}
+                                                    </span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
