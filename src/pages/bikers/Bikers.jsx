@@ -4,6 +4,7 @@ import DashboardHeader from '../../components/dashboard/DashboardHeader'
 import { getData, postData } from '../../api/axios'
 import { FaUser, FaPhone, FaEnvelope, FaCalendar, FaFilter, FaTimes, FaUsers, FaSearch, FaPlus, FaExclamationTriangle } from 'react-icons/fa'
 import './Bikers.css'
+import { useAppStore } from '../../../store/appStore'
 
 export default function Bikers() {
     const [data, setData] = useState([])
@@ -24,6 +25,7 @@ export default function Bikers() {
         email: ''
     })
     const [formErrors, setFormErrors] = useState({})
+    const resetState = useAppStore((state) => state.resetState);
 
     const navigate = useNavigate()
 
@@ -91,6 +93,7 @@ export default function Bikers() {
 
     const handleBikerClick = (bikerId) => {
         navigate(`/dashboard?bikerId=${bikerId}&rideId=${0}`)
+        resetState();
     }
 
     const validateForm = () => {

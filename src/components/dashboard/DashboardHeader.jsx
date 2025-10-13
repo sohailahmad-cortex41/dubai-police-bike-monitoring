@@ -3,6 +3,7 @@ import { useAppStore } from "../../../store/appStore";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "../../assets/police.jpg"; // Adjust the path as necessary
 import { FaPlus } from "react-icons/fa";
+import webSocketService from "../../services/webSocketService";
 
 
 const DashboardHeader = () => {
@@ -14,6 +15,7 @@ const DashboardHeader = () => {
   const setRideData = useAppStore((state) => state.setRideData);
   const rideData = useAppStore((state) => state.rideData);
   const setStatus = useAppStore((state) => state.setStatus);
+  const resetState = useAppStore((state) => state.resetState);
 
   // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
@@ -29,6 +31,14 @@ const DashboardHeader = () => {
       navigate(`/rides?bikerId=${bikerId}`);
       // Reset status when navigating away
       setStatus({ front: false, back: false });
+      resetState();
+      // Disconnect all WebSockets
+      try {
+        webSocketService.disconnectAll();
+        console.log('All WebSocket connections closed');
+      } catch (error) {
+        console.error('Error disconnecting all WebSockets:', error);
+      }
     } else {
       navigate('/rides');
     }
@@ -37,7 +47,17 @@ const DashboardHeader = () => {
   // Handle adding a new ride
   const handleAddNewRide = () => {
     navigate(`/dashboard?bikerId=${bikerId}&rideId=0`)
+    setStatus({ front: false, back: false });
+    resetState();
+    // Clear existing ride data
     setRideData({});
+    // Disconnect all WebSockets
+    try {
+      webSocketService.disconnectAll();
+      console.log('All WebSocket connections closed');
+    } catch (error) {
+      console.error('Error disconnecting all WebSockets:', error);
+    }
   }
 
 

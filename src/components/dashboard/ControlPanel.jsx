@@ -2,6 +2,7 @@ import React, { use, useEffect } from "react";
 import { useAppStore } from "../../../store/appStore";
 import { postData } from "../../api/axios";
 import webSocketService from "../../services/webSocketService";
+import useWebSocket from "../../hooks/useWebSocket";
 
 
 const ControlPanel = () => {
@@ -27,9 +28,7 @@ const ControlPanel = () => {
   const backCameraFilePath = useAppStore((state) => state.backCameraFilePath);
 
   const clearViolations = useAppStore((state) => state.clearViolations);
-  const clearGpsHistory = useAppStore((state) => state.clearGpsHistory);
-
-  const handleStartCamera = async (type) => {
+  const clearGpsHistory = useAppStore((state) => state.clearGpsHistory); const handleStartCamera = async (type) => {
     setStatus({ ...status, [type]: true });
 
     const apiData = {
@@ -39,26 +38,41 @@ const ControlPanel = () => {
     };
 
     console.log(`Starting ${type} camera with data:`, apiData);
-    const response = await postData("start-processing", apiData, "form");
 
-    // Connect WebSocket using the service
     try {
-      webSocketService.connect(
-        type,
-        (message) => {
-          console.log(`Message from ${type} camera:`, message);
-          // Handle messages here if needed
-        },
-        (isConnected) => {
-          console.log(`${type} camera WebSocket status:`, isConnected);
-          // Update connection status if needed
-        }
-      );
-    } catch (error) {
-      console.error(`Error connecting ${type} WebSocket:`, error);
-    }
+      const response = await postData("start-processing", apiData, "form");
+      console.log(`Camera ${type} started:`, response);
 
-    console.log(`Camera ${type} started:`, response);
+      // Only connect WebSocket if the camera start was successful
+      if (response && response.status !== 'error') {
+        // useWebSocket(type);
+
+        // Add a small delay to ensure backend is ready
+        setTimeout(() => {
+          try {
+            webSocketService.connect(
+              type,
+              (message) => {
+                console.log(`Message from ${type} camera:`, message);
+                // Handle messages here if needed
+              },
+              (isConnected) => {
+                console.log(`${type} camera WebSocket status:`, isConnected);
+                if (!isConnected) {
+                  console.warn(`Failed to connect to ${type} WebSocket. Backend might not be ready.`);
+                }
+              }
+            );
+          } catch (error) {
+            console.error(`Error connecting ${type} WebSocket:`, error);
+          }
+        }, 1000); // 1 second delay
+      }
+    } catch (error) {
+      console.error(`Error starting ${type} camera:`, error);
+      // Reset status if camera start failed
+      setStatus({ ...status, [type]: false });
+    }
   };
 
   // console.log("ControlPanel render - status:", status);
@@ -98,6 +112,8 @@ const ControlPanel = () => {
     }
   };
 
+
+
   const handleClearAllData = () => {
     setStatus({ front: false, back: false });
     setBackGPSData({});
@@ -107,6 +123,39 @@ const ControlPanel = () => {
     clearViolations();
     clearGpsHistory();
   };
+
+  // Stop cameras if status changes to false externally
+
+
+  useEffect(() => {
+    const stopProcessing = async () => {
+      try {
+        if (!status.front) {
+          const apiData = {
+            file_path: frontCameraFilePath,
+            camera_type: "front",
+            detect_mode: detectionMode,
+          };
+          console.log("Stopping front camera with data:", apiData);
+          await postData("stop-processing", apiData, "form");
+        }
+
+        if (!status.back) {
+          const apiData = {
+            file_path: backCameraFilePath,
+            camera_type: "back",
+            detect_mode: detectionMode,
+          };
+          console.log("Stopping back camera with data:", apiData);
+          await postData("stop-processing", apiData, "form");
+        }
+      } catch (error) {
+        console.error("Error stopping processing:", error);
+      }
+    };
+
+    stopProcessing();
+  }, [status]);
 
   return (
     <div className="control-panel">

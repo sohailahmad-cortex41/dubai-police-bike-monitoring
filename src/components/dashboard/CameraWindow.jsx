@@ -4,13 +4,18 @@ import { postData } from "../../api/axios";
 import { toast } from "react-hot-toast";
 import Loader from "../Loader";
 import useWebSocket from "../../hooks/useWebSocket";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
 
 const CameraWindow = ({ cameraType }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const bikerId = location.search ? new URLSearchParams(location.search).get("bikerId") : null;
-  const rideId = location.search ? new URLSearchParams(location.search).get("rideId") : null;
+  const [searchParams] = useSearchParams();
+
+  const bikerId = searchParams.get("bikerId");
+  const rideId = searchParams.get("rideId");
+  // const bikerId = location.search ? new URLSearchParams(location.search).get("bikerId") : null;
+  // const rideId = location.search ? new URLSearchParams(location.search).get("rideId") : null;
 
   const fileInputRef = useRef();
   const videoRef = useRef();
@@ -50,12 +55,13 @@ const CameraWindow = ({ cameraType }) => {
   }, [cameraType, videoStreamUrl]);
 
   // Handle connection status changes
-  useEffect(() => {
-    if (!isConnected) {
-      setHasVideoStream(false);
-      setStreamError(isConnected === false ? "Connection lost" : "Connecting...");
-    }
-  }, [isConnected]);
+
+  // useEffect(() => {
+  //   if (!isConnected) {
+  //     setHasVideoStream(false);
+  //     setStreamError(isConnected === false ? "Connection lost" : "Connecting...");
+  //   }
+  // }, [isConnected]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -94,6 +100,7 @@ const CameraWindow = ({ cameraType }) => {
         toast.success(`${label} camera video uploaded successfully!`);
         navigate(`/dashboard?bikerId=${bikerId}&rideId=${response?.ride_id}`);
       } else {
+
         const formData = new FormData();
         Array.from(e.target.files).forEach((file, idx) => {
           formData.append("files", file);
@@ -112,8 +119,10 @@ const CameraWindow = ({ cameraType }) => {
         } else {
           setBackCameraFilePath(response?.files[0]?.rel_path);
         }
+
+
         toast.success(`${label} camera video uploaded successfully!`);
-        navigate(`/dashboard?bikerId=${bikerId}&rideId=${response?.ride_id}`);
+        navigate(`/dashboard?bikerId=${bikerId}&rideId=${rideId}`);
       }
 
     } catch (err) {
@@ -141,14 +150,14 @@ const CameraWindow = ({ cameraType }) => {
           >
             {status?.[cameraType] ? "Active" : "Inactive"}
           </div>
-          <div
+          {/* <div
             className={`connection-status ${isConnected ? "connected" : "disconnected"
               }`}
             title={`WebSocket ${isConnected ? "Connected" : "Disconnected"}`}
           >
             <i className={`fas ${isConnected ? "fa-wifi" : "fa-wifi"}`}
               style={{ color: isConnected ? "#28a745" : "#dc3545" }}></i>
-          </div>
+          </div> */}
         </div>
       </div>
       <div className="video-display">
@@ -239,10 +248,6 @@ const CameraWindow = ({ cameraType }) => {
               <span style={{ color: "#dc3545" }}>
                 <i className="fas fa-exclamation-triangle"></i> {streamError}
               </span>
-            ) : isConnected ? (
-              <span style={{ color: "#ffc107" }}>
-                <i className="fas fa-spinner fa-spin"></i> Loading video stream...
-              </span>
             ) : (
               <span style={{ color: "#6c757d" }}>
                 <i className="fas fa-plug"></i> Connecting to camera...
@@ -305,9 +310,9 @@ const CameraWindow = ({ cameraType }) => {
           }}
         >
           {uploading && "Uploading..."}
-          {uploadedFileName && !uploading && (
+          {/* {uploadedFileName && !uploading && (
             <span>Uploaded: {uploadedFileName}</span>
-          )}
+          )} */}
           <span> {label == 'Front' ? frontCameraFilePath?.split("/").pop() : backCameraFilePath?.split("/").pop()}</span>
           {uploadError && (
             <span style={{ color: "#dc3545" }}>{uploadError}</span>

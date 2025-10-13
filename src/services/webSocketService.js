@@ -135,17 +135,28 @@ class WebSocketService {
                 this.cleanup(cameraType);
                 onStatusChange?.(false);
 
-                // Attempt reconnection
-                this.attemptReconnect(cameraType, onMessage, onStatusChange);
+                // Only attempt reconnection if it wasn't a manual close
+                if (event.code !== 1000) {
+                    this.attemptReconnect(cameraType, onMessage, onStatusChange);
+                }
             };
 
             ws.onerror = (error) => {
                 console.error(`❌ WebSocket error for ${cameraType}:`, error);
+                console.warn(`WebSocket connection failed. This might be because:
+1. Backend server is not running on port 5455
+2. WebSocket endpoint /ws/${cameraType} doesn't exist
+3. Backend doesn't support WebSocket connections
+4. CORS policy is blocking the connection`);
                 onStatusChange?.(false);
+
+                // Clean up the connection immediately on error
+                this.cleanup(cameraType);
             };
 
         } catch (error) {
             console.error(`Failed to create WebSocket connection for ${cameraType}:`, error);
+            console.warn(`Make sure the backend server is running and supports WebSocket connections at ws://localhost:5455/ws/${cameraType}`);
             onStatusChange?.(false);
         }
     }
@@ -354,17 +365,24 @@ class WebSocketService {
         const attempts = this.reconnectAttempts.get(cameraType) || 0;
 
         if (attempts >= this.maxReconnectAttempts) {
-            console.error(`Max reconnection attempts reached for ${cameraType} camera`);
+            console.error(`Max reconnection attempts reached for ${cameraType} camera. Please check if backend server is running.`);
             return;
         }
 
-        const delay = Math.min(1000 * Math.pow(2, attempts), 30000); // Exponential backoff
+        const delay = Math.min(2000 * Math.pow(2, attempts), 60000); // Exponential backoff, max 60 seconds
         this.log(`🔄 Reconnecting to ${cameraType} in ${delay}ms (attempt ${attempts + 1}/${this.maxReconnectAttempts})`);
 
-        setTimeout(() => {
-            this.reconnectAttempts.set(cameraType, attempts + 1);
-            this.connect(cameraType, onMessage, onStatusChange);
+        const timeoutId = setTimeout(() => {
+            // Check if we should still attempt to reconnect
+            if (!this.connections.has(cameraType)) {
+                this.reconnectAttempts.set(cameraType, attempts + 1);
+                this.connect(cameraType, onMessage, onStatusChange);
+            }
         }, delay);
+
+        // Store timeout ID for potential cleanup
+        this._reconnectTimeouts = this._reconnectTimeouts || new Map();
+        this._reconnectTimeouts.set(cameraType, timeoutId);
     }
 
     /**
@@ -375,6 +393,13 @@ class WebSocketService {
         if (ws && ws._pingIntervalId) {
             clearInterval(ws._pingIntervalId);
         }
+
+        // Clear any pending reconnection timeouts
+        if (this._reconnectTimeouts && this._reconnectTimeouts.has(cameraType)) {
+            clearTimeout(this._reconnectTimeouts.get(cameraType));
+            this._reconnectTimeouts.delete(cameraType);
+        }
+
         this.connections.delete(cameraType);
     }
 
