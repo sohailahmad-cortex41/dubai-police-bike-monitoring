@@ -8,6 +8,8 @@ import useWebSocket from "../../hooks/useWebSocket";
 const ControlPanel = () => {
   // Use the WebSocketService directly instead of a hook
 
+
+
   const status = useAppStore((state) => state.status);
   const setStatus = useAppStore((state) => state.setStatus);
   const setFrontLaneData = useAppStore((state) => state.setFrontLaneData);
@@ -28,7 +30,9 @@ const ControlPanel = () => {
   const backCameraFilePath = useAppStore((state) => state.backCameraFilePath);
 
   const clearViolations = useAppStore((state) => state.clearViolations);
-  const clearGpsHistory = useAppStore((state) => state.clearGpsHistory); const handleStartCamera = async (type) => {
+  const clearGpsHistory = useAppStore((state) => state.clearGpsHistory);
+
+  const handleStartCamera = async (type) => {
     setStatus({ ...status, [type]: true });
 
     const apiData = {
@@ -39,13 +43,14 @@ const ControlPanel = () => {
 
     console.log(`Starting ${type} camera with data:`, apiData);
 
+
+
     try {
       const response = await postData("start-processing", apiData, "form");
       console.log(`Camera ${type} started:`, response);
 
       // Only connect WebSocket if the camera start was successful
       if (response && response.status !== 'error') {
-        // useWebSocket(type);
 
         // Add a small delay to ensure backend is ready
         setTimeout(() => {

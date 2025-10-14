@@ -1,18 +1,16 @@
 import React from "react";
 import CameraWindow from "./CameraWindow";
-import { useAppStore } from "../../../store/appStore";
+import useWebSocket from "../../hooks/useWebSocket";
 
 const VideoSection = () => {
-  //getting rideData from global store
-  const rideData = useAppStore((state) => state.rideData);
+  // Get video frames directly from WebSocket hooks
+  const { videoFrame: frontVideoFrame } = useWebSocket('front');
+  const { videoFrame: backVideoFrame } = useWebSocket('back');
 
-  console.log("Ride Data in VideoSection:", rideData);
-
-  let rideVideos = rideData?.ride_videos ? JSON.parse(rideData.ride_videos) : null;
   return (
     <div className="video-section">
-      <CameraWindow cameraType="front" />
-      <CameraWindow cameraType="back" />
+      <CameraWindow cameraType="front" videoFrame={frontVideoFrame} />
+      <CameraWindow cameraType="back" videoFrame={backVideoFrame} />
     </div>
   );
 };

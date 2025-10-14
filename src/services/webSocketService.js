@@ -165,31 +165,24 @@ class WebSocketService {
      * Handle binary data (video frames)
      */
     handleBinaryData(cameraType, blobData) {
-        // Convert blob to data URL for display
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64Data = reader.result;
-            this.log(`📷 Video frame processed for ${cameraType}: ${base64Data.length} chars`);
+        this.log(`📷 Video frame received from ${cameraType}: ${blobData.size} bytes`);
 
-            // Call video frame handler with the base64 data
-            const handler = this.videoHandlers.get(cameraType);
-            if (handler) {
-                try {
-                    handler({
-                        camera_type: cameraType,
-                        frame: base64Data,
-                        timestamp: Date.now(),
-                        size: blobData.size
-                    });
-                } catch (error) {
-                    console.error(`Error in video frame handler for ${cameraType}:`, error);
-                }
+        // Call video frame handler with the blob data directly
+        const handler = this.videoHandlers.get(cameraType);
+        if (handler) {
+            try {
+                handler({
+                    camera_type: cameraType,
+                    frame: blobData, // Pass blob directly instead of base64
+                    timestamp: Date.now(),
+                    size: blobData.size
+                });
+            } catch (error) {
+                console.error(`Error in video frame handler for ${cameraType}:`, error);
             }
-        };
-        reader.onerror = (error) => {
-            console.error(`Error reading binary data for ${cameraType}:`, error);
-        };
-        reader.readAsDataURL(blobData);
+        } else {
+            this.log(`No video handler registered for ${cameraType} camera`);
+        }
     }
 
     /**

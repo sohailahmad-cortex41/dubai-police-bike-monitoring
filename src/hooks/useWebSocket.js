@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAppStore } from '../../store/appStore';
+// import { useAppStore } from '../../store/appStore';
 import toast from 'react-hot-toast';
 import webSocketService, { MessageTypes } from '../services/webSocketService';
+import { useAppStore } from '../../store/appStore';
 
 export const useWebSocket = (cameraType = 'front') => {
     const [isConnected, setIsConnected] = useState(false);
@@ -12,7 +13,6 @@ export const useWebSocket = (cameraType = 'front') => {
     const gpsHistory = useAppStore((state) => state.gpsHistory);
 
     // Zustand store actions
-
     const setFrontLaneData = useAppStore((state) => state.setFrontLaneData);
     const setBackLaneData = useAppStore((state) => state.setBackLaneData);
     const setFrontGPSData = useAppStore((state) => state.setFrontGPSData);
@@ -22,6 +22,10 @@ export const useWebSocket = (cameraType = 'front') => {
     const setSystemStatus = useAppStore((state) => state.setSystemStatus);
     const status = useAppStore((state) => state.status);
     const setStatus = useAppStore((state) => state.setStatus);
+
+    // Try to get video frame setters from store (might not exist)
+    const setFrontVideoFrame = useAppStore((state) => state.setFrontVideoFrame);
+    const setBackVideoFrame = useAppStore((state) => state.setBackVideoFrame);
 
     // Set camera as active when connecting
 
@@ -45,7 +49,7 @@ export const useWebSocket = (cameraType = 'front') => {
         );
 
         if (checkDuplicate) {
-            console.log(`Duplicate GPS entry ignored:`, data);
+            // console.log(`Duplicate GPS entry ignored:`, data);
         } else {
             // console.log(`[${cameraType}] GPS update:`, data);
             // console.log('GPS History:', gpsHistory);
@@ -78,8 +82,8 @@ export const useWebSocket = (cameraType = 'front') => {
 
     // Handle violation alerts
     const handleViolation = useCallback((data) => {
-        console.warn(`🚨 Violation detected:`, data);
-        console.log(`Current violation history:`, violationHistory);
+        // console.warn(`🚨 Violation detected:`, data);
+        // console.log(`Current violation history:`, violationHistory);
 
         // Prevent duplicate violations within short time (e.g., 10 seconds)
         const recentDuplicate = violationHistory.find(v =>
@@ -87,7 +91,7 @@ export const useWebSocket = (cameraType = 'front') => {
         );
 
         if (recentDuplicate) {
-            console.log(`Duplicate violation ignored:`, data);
+            // console.log(`Duplicate violation ignored:`, data);
             return;
         } else {
             addViolation({
@@ -112,9 +116,23 @@ export const useWebSocket = (cameraType = 'front') => {
 
     // Handle video frames
     const handleVideoFrame = useCallback((data) => {
-        // console.log(`📹 [${cameraType}] Video frame received`);
+        console.log(`📹 [${cameraType}] Video frame received`, data);
+
+        // Always update local state
         setVideoFrame(data);
-    }, [cameraType]);
+
+        // Try to update store if functions exist
+        try {
+            if (cameraType === 'front' && setFrontVideoFrame) {
+                setFrontVideoFrame(data);
+            } else if (cameraType === 'back' && setBackVideoFrame) {
+                setBackVideoFrame(data);
+            }
+        } catch (error) {
+            console.warn(`Store video frame setter not available for ${cameraType}:`, error);
+        }
+
+    }, [cameraType, setFrontVideoFrame, setBackVideoFrame]);
 
     // Handle system status
     const handleSystemStatus = useCallback((data) => {

@@ -3,28 +3,31 @@ import { useAppStore } from "../../../store/appStore";
 import { postData } from "../../api/axios";
 import { toast } from "react-hot-toast";
 import Loader from "../Loader";
-import useWebSocket from "../../hooks/useWebSocket";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import useWebSocket from "../../hooks/useWebSocket";
 
 
-const CameraWindow = ({ cameraType }) => {
+const CameraWindow = ({ cameraType, videoFrame }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const { isConnected } = useWebSocket(cameraType);
+
   const bikerId = searchParams.get("bikerId");
   const rideId = searchParams.get("rideId");
-  // const bikerId = location.search ? new URLSearchParams(location.search).get("bikerId") : null;
-  // const rideId = location.search ? new URLSearchParams(location.search).get("rideId") : null;
 
   const fileInputRef = useRef();
   const videoRef = useRef();
+  const imgRef = useRef();
+  const timeoutRef = useRef();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [hasVideoStream, setHasVideoStream] = useState(false);
   const [streamError, setStreamError] = useState("");
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
   const isFront = cameraType === "front";
   const color = isFront ? "#007bff" : "#28a745";
   const label = isFront ? "Front" : "Back";
@@ -38,30 +41,92 @@ const CameraWindow = ({ cameraType }) => {
   const setBackCameraFilePath = useAppStore(
     (state) => state.setBackCameraFilePath
   );
-  const setRideId = useAppStore((state) => state.setRideId);
+  const setRideId = useAppStore((state) => state.setRideId);  // Handle video frame updates from WebSocket
+  useEffect(() => {
+    // Only process video frames if camera status is active
+    if (videoFrame && videoFrame.frame && videoFrame.camera_type === cameraType && status?.[cameraType]) {
+      console.log(`📷 Received video frame for ${cameraType} camera:`, videoFrame.size, 'bytes');
 
-  // Get the video stream URL from environment
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5455';
-  const videoStreamUrl = `${API_BASE_URL}/viewer?camera_type=${cameraType}`;
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-  // WebSocket connection for video streaming (keep for status monitoring)
-  const { isConnected, videoFrame, onVideoFrame } = useWebSocket(cameraType);
+      try {
+        // Clean up previous video URL to prevent memory leaks
+        if (currentVideoUrl) {
+          URL.revokeObjectURL(currentVideoUrl);
+        }
+
+        // Create object URL from blob
+        const videoUrl = URL.createObjectURL(videoFrame.frame);
+        setCurrentVideoUrl(videoUrl);
+        setHasVideoStream(true);
+        setStreamError("");
+
+        // Update the img element with the new frame
+        if (imgRef.current) {
+          imgRef.current.src = videoUrl;
+        }
+
+        // Set timeout to show placeholder if no new frame received in 5 seconds
+        timeoutRef.current = setTimeout(() => {
+          console.warn(`⏰ No video frame received for ${cameraType} camera in 5 seconds`);
+          setHasVideoStream(false);
+          setStreamError("Video stream timeout - no frames received");
+        }, 5000);
+
+      } catch (error) {
+        console.error(`❌ Error processing video frame for ${cameraType}:`, error);
+        setHasVideoStream(false);
+        setStreamError("Error processing video frame");
+      }
+    }
+  }, [videoFrame, cameraType, currentVideoUrl, status]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (currentVideoUrl) {
+        URL.revokeObjectURL(currentVideoUrl);
+      }
+    };
+  }, [currentVideoUrl]);
+
+  // Handle camera status changes
+  useEffect(() => {
+    if (!status?.[cameraType]) {
+      // Camera is inactive, stop video stream and show appropriate message
+      console.log(`📴 ${cameraType} camera status is inactive, stopping video stream`);
+      setHasVideoStream(false);
+      setStreamError("Camera is inactive");
+
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // Clean up current video URL
+      if (currentVideoUrl) {
+        URL.revokeObjectURL(currentVideoUrl);
+        setCurrentVideoUrl(null);
+      }
+    } else {
+      // Camera is active, reset to waiting state
+      console.log(`🔄 ${cameraType} camera status is active, ready for video frames`);
+      setStreamError("Waiting for video frames...");
+    }
+  }, [status, cameraType, currentVideoUrl]);
 
   // Initialize video stream state
   useEffect(() => {
     setHasVideoStream(false);
-    setStreamError("");
-    console.log(`🔄 Initializing video stream for ${cameraType} camera: ${videoStreamUrl}`);
-  }, [cameraType, videoStreamUrl]);
-
-  // Handle connection status changes
-
-  // useEffect(() => {
-  //   if (!isConnected) {
-  //     setHasVideoStream(false);
-  //     setStreamError(isConnected === false ? "Connection lost" : "Connecting...");
-  //   }
-  // }, [isConnected]);
+    setStreamError(status?.[cameraType] ? "Waiting for video frames..." : "Camera is inactive");
+    console.log(`🔄 Initializing video display for ${cameraType} camera`);
+  }, [cameraType, status]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -161,65 +226,26 @@ const CameraWindow = ({ cameraType }) => {
         </div>
       </div>
       <div className="video-display">
-        <iframe
-          ref={videoRef}
+        <img
+          ref={imgRef}
           id={`${cameraType}VideoStream`}
           className="video-stream"
-          src={videoStreamUrl}
+          alt={`${label} camera stream`}
           style={{
             display: hasVideoStream ? "block" : "none",
             width: "100%",
             height: "400px",
-            border: "none",
-            borderRadius: "8px"
+            objectFit: "cover",
+            borderRadius: "8px",
+            backgroundColor: "#000"
           }}
-          title={`${label} camera stream`}
-          onLoad={(e) => {
-            // Check if iframe actually loaded content
-            try {
-              const iframe = e.target;
-              // Add a delay to check if content is actually loading
-              setTimeout(() => {
-                try {
-                  // Check if iframe has content
-                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                  if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim() !== '') {
-                    setHasVideoStream(true);
-                    setStreamError("");
-                    console.log(`✅ Video stream loaded for ${cameraType} camera`);
-                  } else {
-                    setHasVideoStream(false);
-                    setStreamError("Video stream not available");
-                    console.warn(`⚠️ Video stream not available for ${cameraType} camera`);
-                  }
-                } catch (accessError) {
-                  // Cross-origin iframe access denied, try to detect by checking src
-                  if (iframe.src === videoStreamUrl) {
-                    // Give it a chance - might be working even if we can't access content
-                    setTimeout(() => {
-                      // If no explicit error after 3 seconds, assume it's working
-                      if (!streamError && iframe.src === videoStreamUrl) {
-                        setHasVideoStream(true);
-                        setStreamError("");
-                        console.log(`✅ Video stream assumed working for ${cameraType} camera`);
-                      }
-                    }, 3000);
-                  } else {
-                    setHasVideoStream(false);
-                    setStreamError("Video stream not available");
-                  }
-                }
-              }, 2000);
-            } catch (error) {
-              setHasVideoStream(false);
-              setStreamError("Failed to access video stream");
-              console.error(`❌ Error accessing video stream for ${cameraType} camera:`, error);
-            }
+          onLoad={() => {
+            console.log(`✅ Video frame displayed for ${cameraType} camera`);
           }}
           onError={() => {
+            console.error(`❌ Error displaying video frame for ${cameraType} camera`);
             setHasVideoStream(false);
-            setStreamError("Failed to load video stream");
-            console.error(`❌ Failed to load video stream for ${cameraType} camera`);
+            setStreamError("Error displaying video frame");
           }}
         />
         <div
@@ -250,23 +276,19 @@ const CameraWindow = ({ cameraType }) => {
               </span>
             ) : (
               <span style={{ color: "#6c757d" }}>
-                <i className="fas fa-plug"></i> Connecting to camera...
+                <i className="fas fa-plug"></i> Waiting for video frames...
               </span>
             )}
           </small>
           <button
             onClick={() => {
-              console.log(`🔄 Retrying connection for ${cameraType} camera`);
+              console.log(`🔄 Resetting video display for ${cameraType} camera`);
               setHasVideoStream(false);
-              setStreamError("");
+              setStreamError("Waiting for video frames...");
 
-              // Force iframe reload by changing src
-              if (videoRef.current) {
-                const currentSrc = videoRef.current.src;
-                videoRef.current.src = "";
-                setTimeout(() => {
-                  videoRef.current.src = currentSrc;
-                }, 100);
+              // Clear any existing timeout
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
               }
             }}
             style={{
@@ -280,7 +302,7 @@ const CameraWindow = ({ cameraType }) => {
               fontSize: "0.9em"
             }}
           >
-            <i className="fas fa-refresh"></i> Retry Connection
+            <i className="fas fa-refresh"></i> Reset
           </button>
         </div>
       </div>

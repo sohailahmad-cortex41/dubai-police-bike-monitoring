@@ -22,6 +22,8 @@ export const useAppStore = create(
       gpsHistory: [],
       ride_id: null,
       rideData: {},
+      frontVideoFrame: {},
+      backVideoFrame: {},
 
       // Actions
 
@@ -50,6 +52,8 @@ export const useAppStore = create(
       clearGpsHistory: () => set({ gpsHistory: [] }),
       setRideId: (id) => set({ ride_id: id }),
       setRideData: (data) => set({ rideData: data }),
+      setFrontVideoFrame: (frameData) => set({ frontVideoFrame: frameData }),
+      setBackVideoFrame: (frameData) => set({ backVideoFrame: frameData }),
 
 
       resetState: () =>
@@ -62,7 +66,10 @@ export const useAppStore = create(
           backGPSData: null,
           frontCameraFilePath: null,
           backCameraFilePath: null,
-          ride_id: null
+          ride_id: null,
+          setFrontVideoFrame: {},
+          setBackVideoFrame: {},
+
         }),
     }),
     {
