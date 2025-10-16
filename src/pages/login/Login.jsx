@@ -26,8 +26,8 @@ export default function Login() {
     const errs = {};
 
     if (!formData.username) errs.username = "Username is required";
-    if (formData.password.length < 6)
-      errs.password = "Password must be at least 6 characters";
+    if (!formData.password)
+      errs.password = "Password is required";
     return errs;
   };
 
@@ -37,7 +37,6 @@ export default function Login() {
   };
 
   const handleSubmit = async (e) => {
-    console.log("Login form submitted");
 
     e.preventDefault();
     setIsLoading(true);

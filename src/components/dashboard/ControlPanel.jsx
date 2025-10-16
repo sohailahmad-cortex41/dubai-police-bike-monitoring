@@ -438,7 +438,8 @@ const ControlPanel = () => {
       </div>
 
       {/* Statistics Section */}
-      <div className="panel-section">
+
+      {/* <div className="panel-section">
         <div className="panel-title">
           <i className="fas fa-chart-line"></i>
           Session Stats
@@ -497,7 +498,8 @@ const ControlPanel = () => {
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
+
     </div>
   );
 };
