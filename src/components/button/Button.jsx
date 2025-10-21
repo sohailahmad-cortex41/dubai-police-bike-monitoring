@@ -10,15 +10,16 @@ const Button = ({
   googleButton,
   className = "",
   size = "default", // default size
+  type,
 }) => {
   return (
     <button
-      className={`custom-button ${size} ${
-        disabled ? "button-disabled" : ""
-      } ${className}`}
+      className={`custom-button ${size} ${disabled ? "button-disabled" : ""
+        } ${className}`}
       onClick={onClick}
       disabled={disabled}
       style={style}
+      type={type}
     >
       {googleButton && (
         <img

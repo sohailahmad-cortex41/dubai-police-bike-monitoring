@@ -39,6 +39,8 @@ const ControlPanel = () => {
       file_path: type === "front" ? frontCameraFilePath : backCameraFilePath,
       camera_type: type,
       detect_mode: detectionMode,
+      conf: laneConfidence,
+      speed_limit_kmh: speedLimit
     };
 
     console.log(`Starting ${type} camera with data:`, apiData);
