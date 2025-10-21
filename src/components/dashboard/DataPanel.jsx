@@ -124,22 +124,29 @@ const DataPanel = () => {
     }
   };
 
-  // Fetch violations on component mount and every second
+  // Fetch violations on component mount and every 3 second if cameras are active
   useEffect(() => {
-    if (rideId && rideId !== '0' && rideId !== undefined) {
-      // Initial fetch
-      getViolations(rideId).then(setViolationsData);
+    if (!rideId || rideId === "0") {
+      setViolationsData([]);
+      return;
+    }
 
-      // Set up interval for real-time updates
+    // Always fetch once initially
+    getViolations(rideId).then(setViolationsData);
+
+    // Only set up interval if any camera is active
+    if (status.front || status.back) {
       const interval = setInterval(() => {
         getViolations(rideId).then(setViolationsData);
       }, 3000);
 
       return () => clearInterval(interval);
-    } else {
-      setViolationsData([]);
     }
-  }, [rideId]);
+
+    // Cleanup if no interval created
+    return () => { };
+  }, [rideId, status.front, status.back]);
+
 
   // console.log("Front Lane Data:", frontLaneData);
   // console.log("Back Lane Data:", backLaneData);
